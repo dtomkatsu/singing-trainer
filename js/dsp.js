@@ -610,8 +610,14 @@ const Metrics = (() => {
    * report.html are calibrated against this implementation, not lifted from
    * a clinical paper. Relative ordering is what transfers.
    *
-   * @returns {cppsDb, quefrencyHz, frames} — quefrencyHz is the cepstral
-   *   peak read back as a frequency, an f0 estimate arrived at independently.
+   * @returns {cppsDb, quefrencyHz, frames} — quefrencyHz is the cepstral peak
+   *   read back as a frequency. Diagnostic only: it agrees with f0 across most
+   *   of the range, but a high voice has few harmonics below 5 kHz, so at high
+   *   f0 *and* low SNR the rahmonic is weak enough that a sub-rahmonic can win
+   *   (measured: 784 Hz breathy resolving to 197 Hz). Do not use it as a pitch
+   *   estimate — and note the fix for it would be to narrow the search using
+   *   the tracked f0, which is exactly the coupling this function exists to
+   *   avoid.
    */
   function cpps(pcm, sampleRate, track, start, end, opts = {}) {
     // 4096, not the tracker's 2048. A 2048 window at 48 kHz is 23.4 Hz per bin,

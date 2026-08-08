@@ -136,12 +136,23 @@ Report bands (`good ≥ 14`, `okay ≥ 9`) are calibrated on **this
 implementation** — CPPS absolute values shift with log-spectrum convention,
 smoothing widths and regression band, so clinical thresholds do not port.
 
-**Known limitation:** a residual f0 dependence survives. Read across any row
-above: at equal breathiness a 523 Hz voice scores ~8 dB below an 82 Hz one, so
-high voices get flagged more readily than they deserve. This is the same shape
-of caveat SPR already carries (RESEARCH.md §4: sopranos above ~C5 show no
-meaningful singer's formant). It was left uncorrected rather than fitted away,
-because the correction would be tuned entirely on synthetic voice.
+**Known limitations**, both left uncorrected on purpose:
+
+1. **Residual f0 dependence.** Read across any row above: at equal breathiness a
+   523 Hz voice scores ~8 dB below an 82 Hz one, so high voices get flagged more
+   readily than they deserve. Same shape of caveat SPR already carries
+   (RESEARCH.md §4: sopranos above ~C5 show no meaningful singer's formant).
+   Fitting it away would mean fitting entirely to synthetic voice.
+2. **At high f0 *and* low SNR the cepstral peak can land on a sub-rahmonic** —
+   measured, 523 Hz breathy resolved its quefrency to 261 Hz and 784 Hz to
+   197 Hz. A high voice has few harmonics below 5 kHz, so the rahmonic is
+   intrinsically weak and noise can let a sub-rahmonic win. The prominence
+   number stays directionally right (both cases read 4.8–7.3 dB, correctly
+   "breathy"), but it is measuring the wrong peak. The obvious fix — narrow the
+   quefrency search using the tracked f0 — is refused deliberately: that would
+   reintroduce the dependence on the pitch tracker that is the entire reason
+   CPPS exists alongside HNR. `quefrencyHz` is therefore diagnostic output, not
+   a pitch estimate to rely on.
 
 ---
 
