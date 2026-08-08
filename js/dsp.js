@@ -112,12 +112,12 @@ const Pitch = (() => {
    *
    * @returns {cands: [{f0, clarity}] in ascending-lag order, rms}
    */
-  function candidates(buf, sampleRate, maxCand = 5) {
+  function candidates(buf, sampleRate, maxCand = 5, rmsGate = 0.005) {
     const n = buf.length;
     let rms = 0;
     for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
     rms = Math.sqrt(rms / n);
-    if (rms < 0.005) return { cands: [], rms };
+    if (rms < rmsGate) return { cands: [], rms };
 
     const maxLag = nsdf(buf, sampleRate, scratch);
     const minLag = Math.max(2, Math.floor(sampleRate / FMAX));
@@ -292,10 +292,28 @@ const Track = (() => {
       // low notes ride the long window; transitions ride the short one.
       const shortWin = opts.shortWindow != null ? opts.shortWindow : (win >= 2048 ? win >> 1 : 0);
       const sframe = shortWin ? new Float32Array(shortWin) : null;
+      // Adaptive silence gate. detect()'s absolute 0.005 RMS floor assumes a
+      // sensibly-driven mic; a quietly-recorded but clean take (MIR-1K's worst
+      // clip: 84.5% of voiced frames silently discarded) never reaches it.
+      // Offline we can afford a first pass: gate at 5% of the take's loud
+      // frames (p90), clamped to [5e-4, 0.005] so silence stays silence and a
+      // hot signal keeps the old behaviour.
+      let rmsGate = 0.005;
+      {
+        const fr = new Float64Array(nFrames);
+        for (let k = 0; k < nFrames; k++) {
+          let sum = 0;
+          for (let i = k * hop, end = k * hop + win; i < end; i++) sum += pcm[i] * pcm[i];
+          fr[k] = Math.sqrt(sum / win);
+        }
+        const sorted = Float64Array.from(fr).sort();
+        const p90 = sorted[Math.floor(0.9 * (sorted.length - 1))] || 0;
+        rmsGate = Math.min(0.005, Math.max(5e-4, 0.05 * p90));
+      }
       const lattice = new Array(nFrames);
       for (let k = 0; k < nFrames; k++) {
         frame.set(pcm.subarray(k * hop, k * hop + win));
-        const r = Pitch.candidates(frame, sampleRate);
+        const r = Pitch.candidates(frame, sampleRate, 5, rmsGate);
         times[k] = (k * hop + win / 2) / sampleRate;
         rms[k] = r.rms;
         let cands = r.cands;
@@ -303,7 +321,7 @@ const Track = (() => {
           const center = k * hop + (win >> 1);
           const s0 = Math.max(0, Math.min(pcm.length - shortWin, center - (shortWin >> 1)));
           sframe.set(pcm.subarray(s0, s0 + shortWin));
-          const rs = Pitch.candidates(sframe, sampleRate);
+          const rs = Pitch.candidates(sframe, sampleRate, 5, rmsGate);
           // Gate: only admit short-window candidates that are competitive
           // with the long window's best. On heavy noise the short window has
           // half the periods to average and produces junk peaks; unfiltered,
@@ -410,41 +428,49 @@ const Track = (() => {
       // never gets, and that asymmetry breaks the tie the right way.
       const upGhost = UPGHOST;
 
-      for (let j = 0; j <= K; j++) {
-        // --- emission ---
-        let e;
-        if (j === K) {
-          e = UNVOICED;
-        } else {
-          e = WEIGHT * (1 - cands[j].clarity);
-          if (anchor > 0 && !cands[j].mpm) e += anchor;
-          // Sub-harmonic guard — MPM's "first peak above 0.9·max" rule, as a
-          // cost. This is load-bearing, not defensive: the NSDF of a periodic
-          // signal is ~1.0 at *every* multiple of the period, so f0, f0/2 and
-          // f0/3 arrive with identical clarity and the emission term cannot
-          // tell them apart. Without this the decoder happily locks onto f0/3
-          // on a clean sustained tone (measured: 220 Hz read as 73.3 Hz).
-          // Continuity does not save you either — the ghost is just as smooth
-          // over time as the fundamental.
-          for (let k = 0; k < K; k++) {
-            if (k === j) continue;
-            // j is a DOWN-ghost of k (j at an integer fraction of k's f0).
-            const ratio = cands[k].f0 / cands[j].f0;
-            const m = Math.round(ratio);
-            if (m >= 2 && Math.abs(ratio - m) < 0.03 * m &&
-                cands[k].clarity >= SUBQ * cands[j].clarity) { e += SUBHARM; break; }
-            // j is an UP-ghost of k (j at an integer multiple — the
-            // half-period peak a dominant 2nd harmonic produces). Real modal
-            // voices frequently carry H2 > H1, so this direction fires on
-            // real data in a way clean synthetic tones never showed.
-            if (upGhost > 0) {
-              const inv = cands[j].f0 / cands[k].f0;
-              const mi = Math.round(inv);
-              if (mi >= 2 && Math.abs(inv - mi) < 0.03 * mi &&
-                  cands[k].clarity >= UPQ * cands[j].clarity) { e += upGhost; break; }
-            }
+      // --- emission, two parts ---
+      // The ghost guards and the anchor exist to RANK voiced candidates, not
+      // to decide voicing — but summed naively they leak into that decision:
+      // on breathy modal frames every voiced candidate catches some penalty
+      // (the true f0 as "ghost" of its own strong sub-harmonics, the real
+      // ghosts from the down-guard), the whole voiced field ends up pricier
+      // than UNVOICED, and the decoder mutes a frame whose best candidate has
+      // clarity 0.9 (measured: 16% of vocadito_34 wrongly unvoiced). So:
+      // collect the penalties separately and subtract the per-frame minimum —
+      // relative order among voiced candidates is untouched, and the
+      // voiced-vs-unvoiced comparison sees clarity alone.
+      const extra = new Float64Array(K);
+      for (let j = 0; j < K; j++) {
+        if (anchor > 0 && !cands[j].mpm) extra[j] += anchor;
+        // Sub-harmonic guard — MPM's "first peak above 0.9·max" rule, as a
+        // cost. Load-bearing: the NSDF of a periodic signal is ~1.0 at every
+        // multiple of the period, so f0, f0/2 and f0/3 arrive with identical
+        // clarity and the emission term cannot tell them apart. Without this
+        // the decoder locks onto f0/3 on a clean tone (220 Hz read as 73.3).
+        for (let k = 0; k < K; k++) {
+          if (k === j) continue;
+          // j is a DOWN-ghost of k (j at an integer fraction of k's f0).
+          const ratio = cands[k].f0 / cands[j].f0;
+          const m = Math.round(ratio);
+          if (m >= 2 && Math.abs(ratio - m) < 0.03 * m &&
+              cands[k].clarity >= SUBQ * cands[j].clarity) { extra[j] += SUBHARM; break; }
+          // j is an UP-ghost of k (the half-period peak a dominant 2nd
+          // harmonic produces). Real modal voices frequently carry H2 > H1,
+          // so this fires on real data in a way clean synthetics never showed.
+          if (upGhost > 0) {
+            const inv = cands[j].f0 / cands[k].f0;
+            const mi = Math.round(inv);
+            if (mi >= 2 && Math.abs(inv - mi) < 0.03 * mi &&
+                cands[k].clarity >= UPQ * cands[j].clarity) { extra[j] += upGhost; break; }
           }
         }
+      }
+      let minExtra = K ? Infinity : 0;
+      for (let j = 0; j < K; j++) if (extra[j] < minExtra) minExtra = extra[j];
+
+      for (let j = 0; j <= K; j++) {
+        const e = j === K ? UNVOICED
+                          : WEIGHT * (1 - cands[j].clarity) + extra[j] - minExtra;
         // --- transition ---
         if (!prev) { cur[j] = e; ptr[j] = -1; continue; }
         const pc = lattice[t - 1], PK = pc.length;

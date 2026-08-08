@@ -347,22 +347,56 @@ exactly where the synthetic stress cases predicted: hard material. The 16 kHz
 sample rate also exercised rate-independence — a 2048 window there is 128 ms,
 and nothing broke.
 
-**Known regression, documented not chased:** unvoiced-misses doubled overall
-(0.68 → 1.60%), concentrated in one very breathy track (vocadito_34: 73.3% vs
-median's 89.1%, 16.1% unvoiced-miss). Mechanism: on breathy frames the
-sub-harmonic penalty plus low clarity makes the unvoiced state cheaper than the
-true candidate. Fixing it means another knob, and 40 tracks with this many
-knobs is already at the edge of what tuning can honestly support.
+**The unvoiced-miss regression, diagnosed and fixed.** The documented guess
+("sub-harmonic penalty + low clarity") was half right. Frame-level inspection
+of the failures found two distinct mechanisms:
+
+1. **Ghost penalties leaked into the voicing decision.** On breathy modal
+   frames every voiced candidate catches some penalty — the true f0 as "ghost"
+   of its own strong sub-harmonics (a frame was measured muting a clarity-0.91
+   true candidate because its *third* sub-harmonic ran 0.97), the actual
+   ghosts from the down-guard — so the whole voiced field priced above
+   UNVOICED. The guards exist to rank voiced candidates, not to decide
+   voicing. Fix: collect the penalties separately and subtract the per-frame
+   minimum. Relative order among voiced candidates is untouched; the
+   voiced-vs-unvoiced comparison sees clarity alone.
+2. **The absolute RMS silence gate assumed a sensibly-driven mic.** Offline
+   analysis now computes a first-pass RMS profile and gates at 5% of the
+   take's p90, clamped to [5e-4, 0.005]; the live path is unchanged. Honest
+   accounting: this is *robustness hardening without a measured winner* — the
+   clip that motivated it (84.5% empty lattice) turned out on closer
+   inspection to fail the clarity floor, not the RMS gate (median RMS 0.12,
+   whispery vocal with NSDF best < 0.3 on 86.5% of frames — a detector-level
+   limit shared by the baseline, which scores 14.7% there). All measured
+   gains below belong to fix #1.
+
+Neither fix added a tuning knob. After both:
+
+| | RPA | octave | unvoiced-miss |
+|---|---|---|---|
+| vocadito: median-5 | 96.48% | 0.90% | 0.68% |
+| vocadito: decoder | **98.04%** | 0.74% | **0.20%** |
+| MIR-1K: median-5 | 87.33% | 0.27% | 0.76% |
+| MIR-1K: decoder | **92.69%** | 0.22% | 0.79% |
+
+vocadito_34 itself: 73.3% → 83.2% (unvoiced-miss 16.1% → 0.6%; its residual
+error is now octave confusion on H2-dominant frames, no longer muting).
+Synthetic suite rose to 98.0% mean — the normalization also freed the jitter
+case from penalty-tie distortion. Cost: 547 ms on a 30 s take.
 
 ## 6. If the tracker needs to get better
 
 1. ~~More real data before more tuning~~ — done: MIR-1K validated the
    constants blind (+4.9 over baseline on 280k frames, octave errors down).
-2. **The breathy-voice unvoiced-miss class** is now confirmed on both
-   datasets (vocadito_34 at 73%; MIR-1K's worst clips run 25–79%
-   unvoiced-miss) and is the clearest remaining real-world deficiency. The
-   mechanism is known: sub-harmonic penalty + low clarity makes the unvoiced
-   state cheaper than the true candidate.
+2. ~~The breathy-voice unvoiced-miss class~~ — fixed by penalty
+   normalization (vocadito unvoiced-miss 1.60% → 0.20%, below the median
+   baseline; MIR-1K 1.35% → 0.79%, at baseline). The remaining hard residue
+   is different: **whispery, near-aperiodic vocals** whose NSDF never clears
+   the 0.3 clarity floor (MIR-1K geniusturtle clips, 19–66% RPA). That is a
+   per-frame detector limit the baseline shares — a decoder cannot voice a
+   frame the detector never proposes candidates for. This is also the one
+   place a neural tracker (§2) has a genuine edge, and it remains not worth
+   150× the arithmetic for a handful of pathological recordings.
 3. **Only then consider a neural tracker**, and only for Compare-mode imported
    audio — see §2 for why it cannot serve the live or report paths.
 
