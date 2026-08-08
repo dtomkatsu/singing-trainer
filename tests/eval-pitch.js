@@ -77,6 +77,15 @@ const CASES = [
   { name: 'fast melisma 12 n/s',  secs: 3, harm: VOICE,
     f0: (t) => 261.6 * Math.pow(2, [0, 2, 4, 5, 4, 2, 0, 2][Math.floor(t * 12) % 8] / 12) },
 
+  // The same run where the short analysis window is weakest: a low root
+  // (110 Hz — the period barely fits a 1024 window) and a noisy take. These
+  // exist so that any tuning of the dual-window lattice is forced to look at
+  // its own worst cases, not just the comfortable middle.
+  { name: 'melisma low root 110', secs: 3, harm: VOICE,
+    f0: (t) => 110 * Math.pow(2, [0, 2, 4, 5, 4, 2, 0, 2][Math.floor(t * 12) % 8] / 12) },
+  { name: 'melisma + noise',      secs: 3, harm: VOICE, noise: 0.10,
+    f0: (t) => 261.6 * Math.pow(2, [0, 2, 4, 5, 4, 2, 0, 2][Math.floor(t * 12) % 8] / 12) },
+
   // Consonants / breath catches: short unvoiced bursts mid-phrase.
   { name: 'breath interruptions', secs: 4, f0: () => 246.9, harm: VOICE, noise: 0.06,
     ampFn: (t) => (Math.floor(t * 2) % 2 === 1 && (t * 2) % 1 < 0.22 ? 0.04 : 1),

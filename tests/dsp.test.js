@@ -157,6 +157,25 @@ console.log('Track viterbi decode');
   ok(early > 0 && late > 0 &&
      Math.abs(1200 * Math.log2(early / 220)) < 50 && Math.abs(1200 * Math.log2(late / 440)) < 50,
     `octave leap preserved (${early.toFixed(0)} -> ${late.toFixed(0)} Hz)`);
+  // Fast run (12 notes/sec): the dual-window lattice exists for this. Guard
+  // the win — a 2048-only lattice sits ~89% here, dual-window ~95%.
+  {
+    const run = new Float32Array(3 * SR);
+    let ph = 0;
+    for (let i = 0; i < run.length; i++) {
+      const f = 261.6 * Math.pow(2, [0, 2, 4, 5, 4, 2, 0, 2][Math.floor(i / SR * 12) % 8] / 12);
+      ph += 2 * Math.PI * f / SR;
+      run[i] = 0.25 * (Math.sin(ph) + 0.5 * Math.sin(2 * ph) + 0.33 * Math.sin(3 * ph));
+    }
+    const t = Track.analyze(run, SR);
+    let good = 0, tot = 0;
+    for (let k = 0; k < t.f0.length; k++) {
+      const truth = 261.6 * Math.pow(2, [0, 2, 4, 5, 4, 2, 0, 2][Math.floor(t.times[k] * 12) % 8] / 12);
+      tot++;
+      if (t.f0[k] > 0 && Math.abs(1200 * Math.log2(t.f0[k] / truth)) <= 50) good++;
+    }
+    ok(100 * good / tot >= 92, `fast run tracked (${(100 * good / tot).toFixed(1)}% frames within 50¢)`);
+  }
 }
 
 /* ---------- Resonance ---------- */

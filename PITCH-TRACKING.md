@@ -11,7 +11,7 @@ actually cost, and what measuring instead of guessing changed.
 | Stage | Implementation |
 |---|---|
 | Pitch (live) | McLeod Pitch Method — NSDF via FFT autocorrelation, parabolic interpolation, 2048-sample window @ device rate. Frame-independent, because the live path must be causal. |
-| Pitch (offline) | Same NSDF, but each frame emits its **top 5 candidates**, and a **Viterbi decode** picks the path. |
+| Pitch (offline) | Same NSDF, but each frame emits candidates from **two co-centred windows** (2048 + 1024), and a **Viterbi decode** picks the path. |
 | Breathiness | **CPPS** (primary) + autocorrelation HNR (second opinion). |
 | Resonance | SPR, singer's-formant band energy, spectral tilt — FFT band measures. |
 | Comparison | DTW with Sakoe-Chiba band, median-offset key estimation. |
@@ -106,6 +106,25 @@ stays cheap; a spurious octave blip pays it twice — out and back — so the
 continuous path wins. That asymmetry, not raw distance, is what kills octave
 errors.
 
+### 3a-ii. The dual-window lattice
+
+Profiling the melisma case frame-by-frame showed **every error within 10 ms of
+a note boundary** (72.7% error at 0–5 ms from the boundary, 0.0% beyond 10 ms):
+the 42.7 ms window straddles two notes and averages them. A shorter window
+halves the contaminated zone — but measured globally, a 1024 window collapses
+on low pitch + noise (82.4 Hz at moderate noise: 91% → 48% RPA), because a
+583-sample period barely fits it. The window trade-off is pitch-dependent, so
+no single window wins.
+
+Resolution: each frame contributes candidates from **both** the 2048 window and
+a co-centred 1024 window, and the decoder picks per frame. Short-window
+candidates are gated — admitted only when their clarity is at least equal to
+the long window's best (`shortGate: 1.0`), which is exactly the situation at a
+transition, where the long window is smeared and the short one is not.
+Ungated, junk short-window peaks cost ~1 point at 0 dB SNR; the gate recovers
+it at zero cost to any melisma case (measured across gate 0–1.1; 1.1 starts
+sacrificing melisma for noise robustness).
+
 ### 3b. CPPS (`Metrics.cpps`)
 
 HNR is derived from the pitch detector's own NSDF peak, so the measurement and
@@ -171,11 +190,15 @@ steady 220 Hz (control)    median-5   100.0%    0.0%    0.0%
 jitter 3% + noise          median-5    97.1%    0.0%    2.9%
                            viterbi    100.0%    0.0%    0.0%
 SNR ~0 dB                  median-5    76.3%    0.0%   23.7%
-                           viterbi     96.8%    0.0%    3.2%
+                           viterbi     96.4%    0.0%    3.6%
 fading sustain             median-5    94.9%    0.0%    5.1%
-                           viterbi     97.8%    0.0%    2.2%
+                           viterbi     98.9%    0.0%    1.1%
 fast melisma 12 n/s        median-5    89.6%    0.0%   10.4%
-                           viterbi     89.6%    0.0%   10.4%
+                           viterbi     94.6%    0.0%    5.4%
+melisma low root 110       median-5    88.1%    0.0%   11.9%
+                           viterbi     95.7%    0.0%    4.3%
+melisma + noise            median-5    88.5%    0.0%   11.5%
+                           viterbi     95.0%    0.0%    5.0%
 breath interruptions       median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
 interval leaps             median-5   100.0%    0.0%    0.0%
@@ -186,19 +209,23 @@ soprano 659 Hz + noise     median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
 alto 392 Hz                median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
-mean RPA   median-5 95.8%   →   viterbi 98.4%
+mean RPA   median-5 94.5%   →   viterbi 98.4%
 ```
 
-**+2.6 points overall, +20.5 at 0 dB SNR, and zero octave errors** — for +1%
-wall clock (344 → 347 ms on a 30 s take). Reading:
+**+3.9 points overall, +20.1 at 0 dB SNR, +5–8 on every melisma variant, zero
+octave errors.** Cost: 345 → 524 ms on a 30 s take (+52% over the median
+baseline, still 57× realtime — the second NSDF pass on the 1024 window is most
+of it). Reading:
 
-- The win concentrates exactly where predicted: noisy and unstable material.
-  The clean control was already at ceiling and stays there.
-- **Melisma is unchanged (89.6% both).** That ceiling is the 42.7 ms analysis
-  window, not the decoder — no amount of path search fixes 12 notes/sec against
-  that window. If the R&B drills need better, the fix is a shorter window and a
-  higher-resolution f0 method. This is now the clearest measured deficiency in
-  the app.
+- The clean control and all sustained cases were already at ceiling and stay
+  there; the wins concentrate in noisy, unstable, and fast material.
+- **The melisma ceiling broke.** An earlier revision of this document called it
+  "the clearest measured deficiency in the app" and correctly attributed it to
+  the window, not the decoder — the fix was to stop choosing one window
+  (§3a-ii). Residual melisma error (~5%) sits inside ±5 ms of note boundaries,
+  where the label itself is ambiguous: a window centred 3 ms from a transition
+  genuinely contains both notes, and "which note is it" has no single right
+  answer at that instant.
 
 An earlier revision of this document reported **+0.7 points** and recommended
 shipping the decoder only tentatively. That number was real but it was measuring
@@ -256,14 +283,16 @@ most were in the *measuring apparatus* rather than the code under test:
 
 In rough order of value per unit of effort:
 
-1. **Shorten the analysis window for the melisma path.** The 89.6% ceiling is
-   the clearest measured deficiency in the app, and it is a windowing problem.
-2. **Get real ground truth.** Every number here is synthetic. Synthetic tones
+1. **Get real ground truth.** Every number here is synthetic. Synthetic tones
    have cleaner NSDF structure than real voice, which probably *understates*
-   the Viterbi benefit and definitely understates absolute error rates. A few
+   the decoder benefit and definitely understates absolute error rates. A few
    labelled real takes would be worth more than any further tuning.
-3. **Only then consider a neural tracker**, and only for Compare-mode imported
+2. **Only then consider a neural tracker**, and only for Compare-mode imported
    audio — see §2 for why it cannot serve the live or report paths.
+
+(The former #1 — shorten the analysis window for melisma — shipped as the
+dual-window lattice, §3a-ii. The remaining ~5% melisma error is boundary-frame
+label ambiguity, not a windowing problem a tracker can fix.)
 
 ## Running the tools
 

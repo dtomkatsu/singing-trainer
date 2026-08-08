@@ -273,13 +273,44 @@ const Track = (() => {
 
     let f0, clarity;
     if (useViterbi) {
+      // Dual-window lattice. The 2048 window is right for sustained and noisy
+      // material but 42.7 ms wide — on a fast run (12 notes/sec) every frame
+      // near a note boundary averages two pitches, and measured, *all* of the
+      // melisma error lives within 10 ms of boundaries. A 1024 window halves
+      // that contaminated zone but collapses on low pitch + noise (82 Hz at
+      // moderate noise: 91% → 48% accuracy), because a 583-sample period
+      // barely fits it. So: each frame contributes candidates from BOTH a
+      // co-centred short window and the long one, and the decoder — which
+      // already weighs clarity against continuity — picks per frame. Steady
+      // low notes ride the long window; transitions ride the short one.
+      const shortWin = opts.shortWindow != null ? opts.shortWindow : (win >= 2048 ? win >> 1 : 0);
+      const sframe = shortWin ? new Float32Array(shortWin) : null;
       const lattice = new Array(nFrames);
       for (let k = 0; k < nFrames; k++) {
         frame.set(pcm.subarray(k * hop, k * hop + win));
         const r = Pitch.candidates(frame, sampleRate);
         times[k] = (k * hop + win / 2) / sampleRate;
         rms[k] = r.rms;
-        lattice[k] = r.cands;
+        let cands = r.cands;
+        if (sframe) {
+          const center = k * hop + (win >> 1);
+          const s0 = Math.max(0, Math.min(pcm.length - shortWin, center - (shortWin >> 1)));
+          sframe.set(pcm.subarray(s0, s0 + shortWin));
+          const rs = Pitch.candidates(sframe, sampleRate);
+          // Gate: only admit short-window candidates that are competitive
+          // with the long window's best. On heavy noise the short window has
+          // half the periods to average and produces junk peaks; unfiltered,
+          // those cost ~1 point at 0 dB SNR. At a transition the short
+          // window's clarity *beats* the smeared long window, so the gate
+          // passes exactly the frames it exists for.
+          if (rs.cands.length) {
+            const gate = (opts.shortGate != null ? opts.shortGate : 1.0) *
+                         (cands.length ? cands.reduce((m, c) => Math.max(m, c.clarity), 0) : 0);
+            const keep = rs.cands.filter((c) => c.clarity >= gate);
+            if (keep.length) cands = cands.concat(keep);
+          }
+        }
+        lattice[k] = cands;
       }
       const decoded = viterbi(lattice, opts);
       f0 = decoded.f0; clarity = decoded.clarity;
