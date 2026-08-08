@@ -21,18 +21,22 @@
 const Pitch = (() => {
   const FMIN = 60, FMAX = 1200;
 
-  // Normalized Square Difference Function via time-domain autocorrelation.
-  // O(n*maxLag) — fine for n=2048 at analysis frame rates, even on a phone.
+  // Normalized Square Difference Function. Autocorrelation runs through the
+  // FFT (O(n log n) vs O(n·maxLag) naive) — this is what makes offline
+  // analysis of a 30 s take tolerable on a phone. The m'(lag) normalizer
+  // comes from prefix sums of x².
   function nsdf(buf, sampleRate, out) {
     const n = buf.length;
     const maxLag = Math.min(n - 1, Math.floor(sampleRate / FMIN));
+    const r = Fft.acf(buf);
+    // prefix sums of squares: sq[k] = sum_{i<k} buf[i]^2
+    let total = 0;
+    const sq = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) { total += buf[i] * buf[i]; sq[i + 1] = total; }
     for (let lag = 0; lag < maxLag; lag++) {
-      let acf = 0, m = 0;
-      for (let i = 0; i < n - lag; i++) {
-        acf += buf[i] * buf[i + lag];
-        m += buf[i] * buf[i] + buf[i + lag] * buf[i + lag];
-      }
-      out[lag] = m > 0 ? (2 * acf) / m : 0;
+      // m'(lag) = sum_{i=0}^{n-lag-1} x[i]^2 + x[i+lag]^2
+      const m = (sq[n - lag] - sq[0]) + (sq[n] - sq[lag]);
+      out[lag] = m > 1e-12 ? (2 * r[lag]) / m : 0;
     }
     return maxLag;
   }
@@ -118,30 +122,64 @@ const Fft = (() => {
     return w;
   }
 
-  /** Magnitude spectrum of a windowed real frame (length must be power of 2). */
-  function magnitude(frame) {
-    const n = frame.length;
+  /** In-place complex FFT (n = power of 2). invert=true for inverse (unscaled). */
+  function transform(re, im, invert) {
+    const n = re.length;
     const { rev, cos, sin } = tables(n);
-    const re = new Float32Array(n), im = new Float32Array(n);
-    for (let i = 0; i < n; i++) re[rev[i]] = frame[i];
+    for (let i = 0; i < n; i++) {
+      const r = rev[i];
+      if (r > i) {
+        let t = re[i]; re[i] = re[r]; re[r] = t;
+        t = im[i]; im[i] = im[r]; im[r] = t;
+      }
+    }
+    const sgn = invert ? -1 : 1;
     for (let size = 2; size <= n; size <<= 1) {
       const half = size >> 1, step = n / size;
       for (let i = 0; i < n; i += size) {
         for (let j = 0, k = 0; j < half; j++, k += step) {
           const l = i + j, r = i + j + half;
-          const tre = re[r] * cos[k] - im[r] * sin[k];
-          const tim = re[r] * sin[k] + im[r] * cos[k];
+          const c = cos[k], s = sgn * sin[k];
+          const tre = re[r] * c - im[r] * s;
+          const tim = re[r] * s + im[r] * c;
           re[r] = re[l] - tre; im[r] = im[l] - tim;
           re[l] += tre; im[l] += tim;
         }
       }
     }
+  }
+
+  /** Magnitude spectrum of a windowed real frame (length must be power of 2). */
+  function magnitude(frame) {
+    const n = frame.length;
+    const re = Float32Array.from(frame), im = new Float32Array(n);
+    transform(re, im, false);
     const mag = new Float32Array(n / 2);
     for (let i = 0; i < n / 2; i++) mag[i] = Math.hypot(re[i], im[i]) / n;
     return mag;
   }
 
-  return { magnitude, hann };
+  /** Autocorrelation of a real frame via FFT (returns lags 0..n-1). */
+  const acfScratch = {};
+  function acf(frame) {
+    const n = frame.length;
+    let N = 1; while (N < 2 * n) N <<= 1;
+    const s = acfScratch[N] || (acfScratch[N] = { re: new Float32Array(N), im: new Float32Array(N) });
+    const { re, im } = s;
+    re.fill(0); im.fill(0);
+    re.set(frame);
+    transform(re, im, false);
+    for (let i = 0; i < N; i++) {
+      re[i] = re[i] * re[i] + im[i] * im[i];
+      im[i] = 0;
+    }
+    transform(re, im, true);
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) out[i] = re[i] / N;
+    return out;
+  }
+
+  return { magnitude, hann, transform, acf };
 })();
 
 /* ------------------------------------------------------------------ *
@@ -418,7 +456,11 @@ const Dtw = (() => {
    */
   function align(a, b, opts = {}) {
     const octave = !!opts.octaveInvariant;
-    const A = prep(a, octave), B = prep(b, octave);
+    // Cap resolution so the DP matrix stays small on phones: 900² ≈ 6 MB.
+    const MAXN = opts.maxN || 900;
+    const sa = Math.max(1, Math.ceil(a.length / MAXN));
+    const sb = Math.max(1, Math.ceil(b.length / MAXN));
+    const A = prep(decimate(a, sa), octave), B = prep(decimate(b, sb), octave);
     // Key-shift tolerance: allow a global transposition between the two
     // takes (people sing in a comfortable key). Estimate via median diff.
     let shift = 0;
@@ -461,21 +503,21 @@ const Dtw = (() => {
         D[at(i, j)] = c + Math.min(D[at(i - 1, j - 1)], D[at(i - 1, j)], D[at(i, j - 1)]);
       }
     }
-    // Backtrack.
+    // Backtrack (path indices mapped back to undecimated frames).
     const path = [];
     let i = n, j = m;
     if (D[at(n, m)] >= INF) return { path: [], meanAbsCents: null, withinPct: null, shift };
     while (i > 0 && j > 0) {
-      path.push([i - 1, j - 1]);
+      path.push([(i - 1) * sa, (j - 1) * sb]);
       const d = D[at(i - 1, j - 1)], u = D[at(i - 1, j)], l = D[at(i, j - 1)];
       if (d <= u && d <= l) { i--; j--; } else if (u <= l) i--; else j--;
     }
     path.reverse();
 
-    // Score over voiced-voiced pairs only.
+    // Score over voiced-voiced pairs only (decimated coordinates).
     let sum = 0, cnt = 0, within = 0;
     for (const [pi, pj] of path) {
-      const x = A[pi], yRaw = B[pj];
+      const x = A[pi / sa], yRaw = B[pj / sb];
       if (isNaN(x) || isNaN(yRaw)) continue;
       let d = Math.abs(x - (yRaw + shift));
       if (octave) d = Math.min(d, Math.abs(d - 1200));
@@ -496,6 +538,13 @@ const Dtw = (() => {
     for (let i = 0; i < arr.length; i++) {
       out[i] = isNaN(arr[i]) ? NaN : (octave ? ((arr[i] % 1200) + 1200) % 1200 : arr[i]);
     }
+    return out;
+  }
+
+  function decimate(arr, stride) {
+    if (stride <= 1) return arr;
+    const out = new Float32Array(Math.ceil(arr.length / stride));
+    for (let i = 0, j = 0; i < arr.length; i += stride, j++) out[j] = arr[i];
     return out;
   }
 
