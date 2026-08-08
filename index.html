@@ -8,50 +8,40 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
-<main>
-  <h1>Singing Trainer</h1>
-  <p class="dim">Evidence-based pitch and tone training that runs entirely in your phone’s browser. Nothing is uploaded — the microphone feeds a signal analyzer on the page, and recordings never leave the device.</p>
 
-  <a class="btn primary big" href="report.html" style="display:block; margin:14px 0 6px">🩺 Start here — 2-minute voice check</a>
+<header class="appbar">
+  <div class="brand"><span class="brand-ico">🎤</span> Singing Trainer</div>
+  <button class="micchip" id="micChip" hidden><span class="dot"></span> mic live</button>
+</header>
+
+<main id="viewport">
+
+<!-- ============================ HOME ============================ -->
+<section class="view" id="v-home">
+  <p class="hero-tag">Evidence-based pitch and tone training that runs entirely in your phone’s browser. Nothing is uploaded — the microphone feeds a signal analyzer on the page, and recordings never leave the device.</p>
+
+  <a class="btn primary big" href="#report" style="display:block; margin:14px 0 6px">🩺 Start here — 2-minute voice check</a>
   <p class="small dim" style="text-align:center; margin-bottom:14px">It finds your weaknesses and tells you which of the tools below to use.</p>
 
-  <div class="grid2">
-    <a class="card" href="report.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🩺 Voice report</h3>
-      <p class="small dim">Sing one note; get measured on steadiness, breathiness, vibrato, and resonance — and told exactly what to work on.</p>
-    </a>
-    <a class="card" href="tuner.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🎯 Live tuner</h3>
-      <p class="small dim">Real-time pitch trace and a spectrum view with the “ring” band highlighted.</p>
-    </a>
-    <a class="card" href="exercises.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🎹 Pitch exercises</h3>
-      <p class="small dim">Note matching, blind matching, sirens, and intervals — sized to your own range.</p>
-    </a>
-    <a class="card" href="compare.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🆚 Compare</h3>
-      <p class="small dim">Sing against a reference melody and see both contours aligned, with a transposition-tolerant score.</p>
-    </a>
-    <a class="card" href="warmup.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🥤 Warm-up</h3>
-      <p class="small dim">Guided straw-phonation routine with a measurable before/after.</p>
-    </a>
-    <a class="card" href="styles.html" style="text-decoration:none;color:inherit">
-      <h3 style="margin:0">🎤 Styles</h3>
-      <p class="small dim">Sound more R&B: runs &amp; riffs trainer, scoop control, delayed vibrato — plus per-genre guidance.</p>
-    </a>
+  <div class="modegrid">
+    <a class="modecard" href="#report"><span class="mc-ico">🩺</span><b>Voice report</b><span class="small dim">Sing one note; get measured on steadiness, breathiness, vibrato, and resonance.</span></a>
+    <a class="modecard" href="#tuner"><span class="mc-ico">🎯</span><b>Live tuner</b><span class="small dim">Real-time pitch trace and a spectrum view with the “ring” band highlighted.</span></a>
+    <a class="modecard" href="#drills"><span class="mc-ico">🎹</span><b>Pitch drills</b><span class="small dim">Note matching, blind matching, sirens, and intervals — sized to your range.</span></a>
+    <a class="modecard" href="#compare"><span class="mc-ico">🎼</span><b>Compare</b><span class="small dim">Sing against a reference melody and see both contours aligned and scored.</span></a>
+    <a class="modecard" href="#warmup"><span class="mc-ico">🥤</span><b>Warm-up</b><span class="small dim">Guided straw-phonation routine with a measurable before/after.</span></a>
+    <a class="modecard" href="#styles"><span class="mc-ico">🎙️</span><b>Styles</b><span class="small dim">Sound more R&amp;B: runs trainer, scoop control, delayed vibrato.</span></a>
   </div>
 
   <h2>The daily 15 minutes</h2>
   <div class="card">
     <ul class="small">
-      <li><b>1.</b> <a href="warmup.html">Warm-up</a> — straw + lip trills (5 min). Best-evidenced tone exercise there is.</li>
-      <li><b>2.</b> <a href="exercises.html">Pitch work</a> — 10 matches, then 5 <b>blind</b> matches (5 min). The blind reps are the ones that stick.</li>
-      <li><b>3.</b> <a href="compare.html">Repertoire</a> — one phrase of a real song against its reference, three takes, <i>listen to your own recording</i> between takes (5 min).</li>
-      <li><b>Weekly:</b> one <a href="report.html">voice report</a> to watch the numbers move. Daily shorts beat weekend marathons (spacing effect, d≈0.54).</li>
+      <li><b>1.</b> <a href="#warmup">Warm-up</a> — straw + lip trills (5 min). Best-evidenced tone exercise there is.</li>
+      <li><b>2.</b> <a href="#drills">Pitch work</a> — 10 matches, then 5 <b>blind</b> matches (5 min). The blind reps are the ones that stick.</li>
+      <li><b>3.</b> <a href="#compare">Repertoire</a> — one phrase of a real song against its reference, three takes, <i>listen to your own recording</i> between takes (5 min).</li>
+      <li><b>Weekly:</b> one <a href="#report">voice report</a> to watch the numbers move. Daily shorts beat weekend marathons (spacing effect, d≈0.54).</li>
     </ul>
   </div>
 
@@ -80,8 +70,1449 @@
   </div>
 
   <p class="footer-note">Static pages, no accounts, no uploads.</p>
+</section>
+
+<!-- ============================ TUNER ============================ -->
+<section class="view" id="v-tuner">
+  <h1>Live pitch &amp; resonance</h1>
+  <p class="dim">Sing or hum. The trace shows the last 8 seconds; the spectrum highlights the 2.4–3.4 kHz “ring” zone where a resonant voice carries.</p>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone</button>
+    <p class="small dim" style="margin-top:8px">Audio never leaves your phone — analysis runs entirely in the browser. One tap unlocks every mode.</p>
+  </div>
+
+  <div class="mic-app">
+    <div class="card tight">
+      <div class="bignote" id="note">—</div>
+      <div class="bigsub" id="sub">sing a note</div>
+      <div style="margin-top:10px"><canvas id="needle" height="46"></canvas></div>
+    </div>
+    <div class="card tight">
+      <div class="dim small">Pitch trace</div>
+      <canvas id="trace"></canvas>
+    </div>
+    <div class="card tight">
+      <div class="dim small">Spectrum — <span style="color:var(--violet)">purple band = singer’s formant region (ring)</span></div>
+      <canvas id="spec"></canvas>
+      <div class="small dim" style="margin-top:6px">Ring meter <span id="ringVal"></span></div>
+      <div class="meter"><div id="ringBar" style="width:0%; background:var(--violet)"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ REPORT ============================ -->
+<section class="view" id="v-report">
+  <h1>Voice report</h1>
+  <p class="dim">Sing one steady <b>“ahh”</b> at a comfortable pitch and medium-loud volume for ~6 seconds. The analysis measures pitch steadiness, breathiness, vibrato, and resonance, then tells you what to work on. Hold the phone about 30&nbsp;cm (a forearm) from your mouth, in a quiet room.</p>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone</button>
+  </div>
+
+  <div class="mic-app">
+    <div class="card" id="recCard">
+      <div class="countdown" id="count" role="status">&nbsp;</div>
+      <canvas id="liveTrace" style="margin:8px 0"></canvas>
+      <button class="rec big" id="recBtn">● Record 6-second “ahh”</button>
+    </div>
+
+    <div id="results" style="display:none">
+      <div class="card tight">
+        <div class="dim small">Your take (pitch trace)</div>
+        <canvas id="takeTrace"></canvas>
+        <div class="btnrow">
+          <button id="playBtn">▶ Play take</button>
+          <button id="againBtn">↻ New take</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2 style="margin-top:0">Measurements</h2>
+        <table class="metrics" id="mtable"></table>
+        <p class="small dim" style="margin-top:8px">Phone mics and iOS gain control make absolute levels unreliable, so everything here is computed from pitch and spectrum shape, which survive that. Thresholds and the science behind each number: <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/RESEARCH.md">RESEARCH.md</a>.</p>
+      </div>
+      <div class="card">
+        <h2 style="margin-top:0">What to work on</h2>
+        <div id="diags"></div>
+      </div>
+      <div class="card tight" id="histCard" style="display:none">
+        <div class="dim small">Progress (ring = resonance ratio, higher is better)</div>
+        <canvas id="histChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DRILLS ============================ -->
+<section class="view" id="v-drills">
+  <h1>Pitch drills</h1>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone</button>
+  </div>
+
+  <div class="mic-app">
+    <div class="card tight" id="rangeCard">
+      <h3 style="margin-top:0">Your comfortable range</h3>
+      <p class="small dim">Targets are placed inside it — matching is much easier in your own range (Pfordresher &amp; Greenspon 2025). Hold each note ~2 s.</p>
+      <div class="btnrow">
+        <button id="lowBtn">Sing your lowest easy note</button>
+        <button id="highBtn">Sing your highest easy note</button>
+      </div>
+      <p id="rangeTxt" class="dim small"></p>
+    </div>
+
+    <div class="card tight">
+      <div class="pill-select" id="modes">
+        <button data-m="match" class="on">Match a note</button>
+        <button data-m="blind">Blind match</button>
+        <button data-m="siren">Siren</button>
+        <button data-m="interval">Intervals</button>
+      </div>
+      <p class="small dim" id="modeHelp" style="margin-top:8px"></p>
+    </div>
+
+    <div class="card tight">
+      <div class="bignote" id="target">—</div>
+      <div class="bigsub" id="status" role="status">press Start</div>
+      <canvas id="ex" style="margin-top:8px"></canvas>
+      <div class="btnrow">
+        <button class="primary" id="goBtn">Start</button>
+        <button id="replayBtn">🔊 Hear target</button>
+      </div>
+      <div class="small dim">Session <span id="scoreTxt">0 / 0</span> · streak <span id="streakTxt">0</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ COMPARE ============================ -->
+<section class="view" id="v-compare">
+  <h1>Compare to a reference</h1>
+  <p class="dim">Load the melody you’re chasing, sing it, and see both pitch contours aligned on top of each other. Scoring is transposition-tolerant — sing in whatever key fits your voice.</p>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone</button>
+  </div>
+
+  <div class="mic-app">
+    <div class="card">
+      <h2 style="margin-top:0">1 · Reference melody</h2>
+      <p class="small dim">Best sources: an <b>isolated vocal</b> (acapella / stem file), or just sing or hum the target phrase yourself. A full song mix won’t track — the analyzer follows one voice at a time. Up to 30 s.</p>
+      <div class="btnrow">
+        <button id="refRecBtn">● Record reference</button>
+        <label class="btn" style="line-height:1.4">📁 Import audio file
+          <input id="refFile" type="file" accept="audio/*,.m4a,.mp3,.wav" style="display:none">
+        </label>
+      </div>
+      <p id="refStatus" role="status" class="small dim">No reference loaded.</p>
+      <canvas id="refCanvas" style="display:none"></canvas>
+      <div class="btnrow" id="refPlayRow" style="display:none">
+        <button id="refPlayBtn">▶ Play reference</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">2 · Your attempt</h2>
+      <div class="btnrow">
+        <button class="rec" id="attRecBtn" disabled>● Record attempt</button>
+        <button id="attPlayBtn" disabled>▶ Play attempt</button>
+      </div>
+      <p id="attStatus" role="status" class="small dim"></p>
+    </div>
+
+    <div class="card" id="resultCard" style="display:none">
+      <h2 style="margin-top:0">Result</h2>
+      <div class="score" id="scoreBig">—</div>
+      <p class="dim small" style="text-align:center" id="scoreSub"></p>
+      <canvas id="cmpCanvas"></canvas>
+      <p class="small dim" style="margin-top:6px">
+        <span style="color:var(--good)">green = reference</span> ·
+        <span style="color:var(--accent)">blue = you</span> (shifted by the detected transposition, time-aligned)</p>
+      <table class="metrics" id="cmpTable"></table>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ WARM-UP ============================ -->
+<section class="view" id="v-warmup">
+  <h1>SOVT warm-up</h1>
+  <p class="dim">Semi-occluded vocal tract exercises — phonating through a straw or trilled lips — are the best-evidenced tone exercise in voice science (Titze 2006; CT-imaging and trial evidence in <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/RESEARCH.md">RESEARCH.md</a>). They lower the effort needed to make sound and nudge the throat into the shape that produces “ring.” You need a <b>thin drinking straw</b> (a stirring straw is even better).</p>
+
+  <div class="card">
+    <h2 style="margin-top:0">Prove it to yourself</h2>
+    <p class="small dim">Record a 5-second “ahh” now, do the routine, record again — the app shows what changed in your spectrum. Effects of a straw set are measurable immediately.</p>
+    <div class="btnrow">
+      <button id="beforeBtn">● Record “before”</button>
+      <button id="afterBtn" disabled>● Record “after”</button>
+    </div>
+    <p id="abStatus" role="status" class="small dim"></p>
+    <div id="abResult"></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">The routine (~8 min)</h2>
+    <div id="steps"></div>
+  </div>
+
+  <div class="card tight">
+    <div class="countdown" id="timer">&nbsp;</div>
+    <div class="bigsub" id="stepName" role="status">pick a step above, or run them all</div>
+    <div class="btnrow">
+      <button class="primary big" id="runAll">▶ Run full routine</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ STYLES ============================ -->
+<section class="view" id="v-styles">
+  <h1>Sing it in style</h1>
+  <p class="dim">The same acoustic move — a scoop, a breathy verse, a late vibrato, a register flip — is an <i>error</i> in classical scoring and a <i>virtue</i> in R&amp;B. Pick the sound you’re chasing; the drills below train the R&amp;B toolkit specifically. Background and citations: <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/STYLE-GUIDE.md">STYLE-GUIDE.md</a>.</p>
+
+  <div class="card tight">
+    <div class="pill-select" id="stylePick"></div>
+    <div id="styleInfo" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone for the drills</button>
+  </div>
+
+  <div class="mic-app">
+
+    <div class="card">
+      <h2 style="margin-top:0">🏃 Runs &amp; riffs trainer</h2>
+      <p class="small dim">R&amp;B runs live on the pentatonic scale, mostly descending, landing on a chord tone. Method with the best support: hear it → sing it slow → speed ladder. Notes need only land within ±50¢ mid-run (fast pitch is perceived categorically), but the <b>last note is the anchor</b> — that one’s scored tight.</p>
+      <div class="pill-select" id="patternPick"></div>
+      <div style="margin:10px 0 4px" class="small dim">Speed: <span id="npsVal"></span> notes/sec (start at 2–3, earn your way up)</div>
+      <div class="pill-select" id="npsPick"></div>
+      <div class="btnrow"><button class="primary" id="runGo">▶ Hear it, then sing it</button></div>
+      <div class="bigsub" id="runStatus" role="status"></div>
+      <canvas id="runCanvas" style="margin-top:6px"></canvas>
+      <div id="runNotes" style="margin-top:8px"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">🛝 Scoop control</h2>
+      <p class="small dim">An intentional R&amp;B scoop is ~100–300¢ deep, takes 80–250 ms, and <b>lands stable</b>. A slide that never settles is just flat singing. You’ll hear a target note — start clearly below it, slide in, then hold it dead straight.</p>
+      <div class="btnrow"><button class="primary" id="scoopGo">▶ Try a scoop</button></div>
+      <div class="bigsub" id="scoopStatus" role="status"></div>
+      <canvas id="scoopCanvas" style="margin-top:6px"></canvas>
+      <div id="scoopVerdict"></div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">🌊 Delayed vibrato</h2>
+      <p class="small dim">Classical vibrato spins from the first instant; R&amp;B holds the note <b>straight</b> and lets vibrato bloom in the final stretch (&gt;40% in). Hold one note ~4 s: straight first, then release into vibrato.</p>
+      <div class="btnrow"><button class="primary" id="vibGo">▶ Hold a note</button></div>
+      <div class="bigsub" id="vibStatus" role="status"></div>
+      <canvas id="vibCanvas" style="margin-top:6px"></canvas>
+      <div id="vibVerdict"></div>
+    </div>
+
+  </div>
+</section>
+
 </main>
-<script src="js/ui.js?v=2"></script>
-<script>UI.nav('index.html');</script>
+
+<nav class="tabbar" aria-label="Sections">
+  <div class="puck" aria-hidden="true"></div>
+  <button data-view="home"><span class="ico">🏠</span>Home</button>
+  <button data-view="tuner"><span class="ico">🎯</span>Tuner</button>
+  <button data-view="report"><span class="ico">🩺</span>Report</button>
+  <button data-view="drills"><span class="ico">🎹</span>Drills</button>
+  <button data-view="compare"><span class="ico">🎼</span>Compare</button>
+  <button data-view="warmup"><span class="ico">🥤</span>Warm-up</button>
+  <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
+</nav>
+
+<script src="js/dsp.js?v=3"></script>
+<script src="js/mic.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+
+<script>
+/* ===================== App core: views, routing, shared mic ===================== */
+'use strict';
+const App = (() => {
+  const ORDER = ['home', 'tuner', 'report', 'drills', 'compare', 'warmup', 'styles'];
+  const views = {};                       // name -> {enter, leave, onMic}
+  let current = null;
+  let micOn = false;
+
+  const $$ = (sel) => document.querySelectorAll(sel);
+  const secOf = (name) => document.getElementById('v-' + name);
+
+  function register(name, mod) { views[name] = mod || {}; }
+
+  function movePuck(name) {
+    const bar = document.querySelector('nav.tabbar');
+    const btn = bar.querySelector(`button[data-view="${name}"]`);
+    const puck = bar.querySelector('.puck');
+    if (!btn || !puck) return;
+    puck.style.width = btn.offsetWidth + 'px';
+    puck.style.transform = `translateX(${btn.offsetLeft}px)`;
+    puck.classList.add('ready');
+  }
+
+  function show(name, animate = true) {
+    if (!ORDER.includes(name)) name = 'home';
+    if (name === current) return;
+    const dir = ORDER.indexOf(name) > ORDER.indexOf(current) ? 1 : -1;
+    const prev = current ? secOf(current) : null;
+    const next = secOf(name);
+
+    if (current && views[current].leave) views[current].leave();
+    if (prev) prev.classList.remove('on', 'from-left', 'from-right');
+    next.classList.remove('from-left', 'from-right');
+    if (animate && prev) next.classList.add(dir > 0 ? 'from-right' : 'from-left');
+    next.classList.add('on');
+    current = name;
+
+    $$('nav.tabbar button').forEach((b) => {
+      const on = b.dataset.view === name;
+      b.classList.toggle('on', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    movePuck(name);
+    window.scrollTo({ top: 0 });
+    document.title = name === 'home' ? 'Singing Trainer'
+      : next.querySelector('h1').textContent + ' — Singing Trainer';
+    if (views[name].enter) views[name].enter();
+  }
+
+  async function enableMic(btn) {
+    try { await Mic.start(); } catch (e) {
+      if (btn) btn.textContent = 'Microphone blocked — check Settings › Safari › Microphone';
+      return false;
+    }
+    micOn = true;
+    document.body.classList.add('mic-on');
+    document.getElementById('micChip').hidden = false;
+    for (const name of ORDER) if (views[name] && views[name].onMic) views[name].onMic();
+    if (views[current] && views[current].enter) views[current].enter();   // re-init canvases
+    return true;
+  }
+
+  function init() {
+    $$('nav.tabbar button').forEach((b) =>
+      b.addEventListener('click', () => { location.hash = '#' + b.dataset.view; }));
+    $$('[data-micbtn]').forEach((b) =>
+      b.addEventListener('click', () => enableMic(b)));
+    const fromHash = () => show((location.hash || '#home').slice(1));
+    window.addEventListener('hashchange', fromHash);
+    window.addEventListener('resize', () => current && movePuck(current));
+    fromHash();
+    requestAnimationFrame(() => movePuck(current));   // after layout
+  }
+
+  return { register, show, enableMic, init, get micOn() { return micOn; }, get current() { return current; } };
+})();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+</script>
+
+<script>
+/* ===================== Tuner ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let traceC, needleC, specC, raf = 0, live = false;
+  const history = [];
+  const specBytes = new Uint8Array(1024);
+  let smoothedCents = 0, haveNote = false;
+
+  function initCanvases() {
+    traceC = UI.canvas2d($('trace'), 180);
+    needleC = UI.canvas2d($('needle'), 46);
+    specC = UI.canvas2d($('spec'), 120);
+  }
+
+  function drawNeedle(cents) {
+    const { ctx, w, h } = needleC;
+    ctx.clearRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(147,160,180,0.3)';
+    for (const c of [-50, -25, 0, 25, 50]) {
+      const x = w / 2 + (c / 50) * (w / 2 - 10);
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, h - 14); ctx.stroke();
+      ctx.fillStyle = 'rgba(147,160,180,0.6)'; ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center'; ctx.fillText(c === 0 ? '0' : (c > 0 ? '+' + c : c), x, h - 3);
+    }
+    if (!haveNote) return;
+    const x = w / 2 + (Math.max(-50, Math.min(50, cents)) / 50) * (w / 2 - 10);
+    const inTune = Math.abs(cents) <= 10;
+    const near = Math.abs(cents) <= 25;
+    ctx.fillStyle = inTune ? UI.css('--good') : near ? UI.css('--warn') : UI.css('--bad');
+    ctx.beginPath(); ctx.roundRect(x - 3, 4, 6, h - 18, 3); ctx.fill();
+  }
+
+  function drawSpec(binHz) {
+    const { ctx, w, h } = specC;
+    ctx.clearRect(0, 0, w, h);
+    const fMax = 5000;
+    const nBins = Math.min(specBytes.length, Math.floor(fMax / binHz));
+    const x1 = (2400 / fMax) * w, x2 = (3400 / fMax) * w;
+    ctx.fillStyle = 'rgba(179,157,219,0.13)';
+    ctx.fillRect(x1, 0, x2 - x1, h);
+    ctx.fillStyle = UI.css('--accent');
+    const bw = w / nBins;
+    for (let i = 0; i < nBins; i++) {
+      const v = specBytes[i] / 255;
+      ctx.fillRect(i * bw, h - v * h, Math.max(1, bw - 0.5), v * h);
+    }
+    ctx.fillStyle = 'rgba(147,160,180,0.7)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+    for (const f of [1000, 2000, 3000, 4000]) ctx.fillText((f / 1000) + 'k', (f / fMax) * w, h - 2);
+    let ring = 0, low = 0;
+    for (let i = 0; i < nBins; i++) {
+      const f = i * binHz, e = (specBytes[i] / 255) ** 2;
+      if (f >= 2400 && f <= 3400) ring += e;
+      else if (f >= 100 && f <= 2000) low += e;
+    }
+    const ratio = low > 0.001 ? Math.min(1, ring / low * 2.4) : 0;
+    $('ringBar').style.width = (ratio * 100).toFixed(0) + '%';
+    $('ringVal').textContent = ratio > 0.55 ? '— ringing!' : '';
+  }
+
+  function loop() {
+    if (!live) return;
+    const now = performance.now() / 1000;
+    const r = Mic.livePitch();
+    if (r && r.f0 > 0 && r.clarity > 0.5) {
+      const midiCents = Notes.hzToMidi(r.f0) * 100;
+      history.push({ t: now, v: midiCents });
+      const n = Notes.nearest(r.f0);
+      smoothedCents = smoothedCents * 0.6 + n.cents * 0.4;
+      haveNote = true;
+      $('note').textContent = n.name;
+      $('note').style.color = Math.abs(smoothedCents) <= 10 ? UI.css('--good') :
+                              Math.abs(smoothedCents) <= 25 ? UI.css('--warn') : UI.css('--bad');
+      $('sub').textContent = r.f0.toFixed(1) + ' Hz · ' + UI.fmt.cents(smoothedCents);
+    } else {
+      history.push({ t: now, v: NaN });
+      haveNote = false;
+      $('note').style.color = '';
+    }
+    while (history.length && history[0].t < now - 8) history.shift();
+    UI.drawTrace(traceC.ctx, traceC.w, traceC.h, history, { t0: now - 8, t1: now });
+    drawNeedle(smoothedCents);
+    const binHz = Mic.liveSpectrum(specBytes);
+    if (binHz) drawSpec(binHz);
+    raf = requestAnimationFrame(loop);
+  }
+
+  App.register('tuner', {
+    enter() {
+      if (!App.micOn) return;
+      initCanvases();
+      if (!live) { live = true; raf = requestAnimationFrame(loop); }
+    },
+    leave() { live = false; cancelAnimationFrame(raf); },
+    onMic() {},
+  });
+})();
+</script>
+
+<script>
+/* ===================== Report ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const THRESH = {
+    driftSD: { good: (v) => v <= 15, warn: (v) => v <= 30 },
+    jitter:  { good: (v) => v <= 1.0, warn: (v) => v <= 2.5 },
+    shimmer: { good: (v) => v <= 6,  warn: (v) => v <= 12 },
+    hnr:     { good: (v) => v >= 18, warn: (v) => v >= 12 },
+    cpps:    { good: (v) => v >= 14, warn: (v) => v >= 9 },
+    spr:     { good: (v) => v >= -15, warn: (v) => v >= -25 },
+    er3k:    { good: (v) => v >= -16, warn: (v) => v >= -22 },
+  };
+  // Threshold rationale and caveats: RESEARCH.md §10 and PITCH-TRACKING.md.
+
+  let liveC = null, take = null, raf = 0, live = false;
+  const liveHist = [];
+
+  function liveLoop() {
+    if (!live) return;
+    const now = performance.now() / 1000;
+    const r = Mic.livePitch();
+    liveHist.push({ t: now, v: r && r.f0 > 0 && r.clarity > 0.5 ? Notes.hzToMidi(r.f0) * 100 : NaN });
+    while (liveHist.length && liveHist[0].t < now - 6) liveHist.shift();
+    UI.drawTrace(liveC.ctx, liveC.w, liveC.h, liveHist, { t0: now - 6, t1: now });
+    raf = requestAnimationFrame(liveLoop);
+  }
+
+  $('recBtn').addEventListener('click', async () => {
+    await Mic.resume();
+    $('recBtn').disabled = true;
+    $('results').style.display = 'none';
+    for (let c = 3; c >= 1; c--) { $('count').textContent = c; await sleep(700); }
+    $('count').textContent = 'sing…';
+    $('recBtn').classList.add('recording');
+    Mic.beginRecording();
+    const SECS = 6;
+    const t0 = performance.now();
+    while (performance.now() - t0 < SECS * 1000) {
+      $('count').textContent = 'sing… ' + Math.ceil(SECS - (performance.now() - t0) / 1000);
+      await sleep(120);
+    }
+    take = Mic.endRecording();
+    $('recBtn').classList.remove('recording');
+    $('count').textContent = 'analyzing…';
+    await sleep(50);
+    analyzeTake();
+    $('count').textContent = ' ';
+    $('recBtn').disabled = false;
+  });
+
+  function analyzeTake() {
+    const { pcm, sampleRate } = take;
+    const track = Track.analyze(pcm, sampleRate);
+    const [s, e] = Metrics.longestVoicedRun(track);
+    const durS = (e - s) * track.hopSec;
+    $('results').style.display = '';
+    $('results').classList.remove('reveal'); void $('results').offsetWidth;
+    $('results').classList.add('reveal');
+    setTimeout(() => $('results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+
+    const tc = UI.canvas2d($('takeTrace'), 160);
+    const pts = [];
+    for (let i = 0; i < track.times.length; i++) pts.push({ t: track.times[i], v: track.cents[i] });
+    UI.drawTrace(tc.ctx, tc.w, tc.h, pts);
+
+    if (durS < 2.0) {
+      $('mtable').innerHTML = '<tr><td>Not enough steady voiced sound captured (' + durS.toFixed(1) +
+        ' s). Sing one continuous “ahh” for the full 6 seconds, a bit louder, closer to the phone.</td></tr>';
+      $('diags').innerHTML = '';
+      return;
+    }
+
+    const stab = Metrics.stability(track, s, e);
+    const jit = Metrics.jitterLike(track, s, e);
+    const shim = Metrics.shimmerLike(track, s, e);
+    const hnr = Metrics.hnr(track, s, e);
+    const cp = Metrics.cpps(pcm, sampleRate, track, s, e);
+    const vib = Metrics.vibrato(track, s, e);
+    const res = Metrics.resonance(pcm, sampleRate, track, s, e);
+
+    const rate3 = (key, v) => v == null ? 'warn' : THRESH[key].good(v) ? 'good' : THRESH[key].warn(v) ? 'warn' : 'bad';
+    const rows = [];
+    const row = (label, val, level, hint) =>
+      rows.push(`<tr><td>${label}<div class="small dim">${hint}</div></td><td>${val} ${UI.tag(level, level === 'good' ? 'good' : level === 'warn' ? 'okay' : 'work on it')}</td></tr>`);
+
+    const meanNote = stab ? Notes.nearest(stab.meanHz) : null;
+    rows.push(`<tr><td>Note held</td><td>${meanNote ? meanNote.name + ' · ' + stab.meanHz.toFixed(1) + ' Hz · ' + durS.toFixed(1) + ' s' : '—'}</td></tr>`);
+    row('Pitch steadiness', stab ? '±' + stab.driftCentsSD.toFixed(0) + '¢ drift' : '—', rate3('driftSD', stab && stab.driftCentsSD), 'slow wander of the held note (vibrato not counted)');
+    row('Pitch smoothness', jit != null ? jit.toFixed(2) + '%' : '—', rate3('jitter', jit), 'micro-wobble between neighbouring instants');
+    row('Loudness smoothness', shim != null ? shim.toFixed(1) + '%' : '—', rate3('shimmer', shim), 'flutter in volume while holding');
+    row('Breathiness (CPPS)', cp ? cp.cppsDb.toFixed(1) + ' dB' : '—', rate3('cpps', cp && cp.cppsDb), 'how far the voice’s periodicity stands above the noise floor — low = breathy/airy');
+    row('Clarity (HNR est.)', hnr != null ? hnr.toFixed(1) + ' dB' : '—', rate3('hnr', hnr), 'second opinion on the same question, from the pitch detector');
+    if (vib) {
+      const vibTxt = vib.present ? vib.rateHz.toFixed(1) + ' Hz · ±' + vib.extentCents.toFixed(0) + '¢' : 'none detected';
+      const vibLevel = !vib.present ? 'warn' : (vib.rateHz >= 4.5 && vib.rateHz <= 7.5 && vib.extentCents <= 150) ? 'good' : 'warn';
+      row('Vibrato', vibTxt, vibLevel, 'classical target ≈ 5–7 Hz; straight tone is a valid style choice');
+    }
+    if (res) {
+      row('Ring (SPR)', res.sprDb.toFixed(1) + ' dB', rate3('spr', res.sprDb), '2–4 kHz peak vs 0–2 kHz peak — the “carrying” part of the voice');
+      row('Singer’s-formant energy', res.er3kDb.toFixed(1) + ' dB', rate3('er3k', res.er3kDb), 'energy share in the 2.4–3.4 kHz band');
+    }
+    $('mtable').innerHTML = rows.join('');
+
+    const diags = [];
+    const level = { drift: rate3('driftSD', stab && stab.driftCentsSD), jit: rate3('jitter', jit),
+                    breath: cp ? rate3('cpps', cp.cppsDb) : rate3('hnr', hnr),
+                    spr: res ? rate3('spr', res.sprDb) : 'warn',
+                    er3k: res ? rate3('er3k', res.er3kDb) : 'warn', shim: rate3('shimmer', shim) };
+
+    if (level.spr !== 'good' || level.er3k !== 'good') diags.push(['Lack of resonance / ring',
+      'Your energy above 2 kHz is low relative to the fundamental — the voice will sound small or muffled and won’t carry. This is the most trainable tone problem.',
+      'Do the <a href="#warmup">straw phonation set</a> daily (strongest evidence of any tone exercise), then “nya-nya-nya” twang drills, then re-sing your vowel on the <a href="#tuner">tuner</a> watching the purple ring band light up. Forward humming (“mmm” until lips tickle) before singing also helps.']);
+    if (level.breath !== 'good') diags.push(['Breathiness',
+      'A noticeable share of your sound is airflow noise rather than tone — often incomplete vocal-fold closure. (In R&B/pop, breathiness is also a legitimate stylistic color — what matters is being able to switch it off on demand; see <a href="#styles">Styles</a>.)',
+      'Gentle glottal onsets (“uh-oh” then sing the second syllable), straw phonation, and humming. Avoid whisper-singing while training this. If breathiness is constant and effortful, a laryngologist check is worth it.']);
+    if (level.drift !== 'good') diags.push(['Pitch drift on held notes',
+      'The note wanders as you hold it — usually breath support fading rather than a “bad ear.”',
+      'Sustain practice with the <a href="#tuner">tuner</a>: hold a note in the green for 8–10 s. Bend at the waist / sip-breath drills in the <a href="#warmup">warm-up</a> build the support to keep it there. Also try crescendo–decrescendo (messa di voce) on one note.']);
+    if (level.jit !== 'good' || level.shim !== 'good') diags.push(['Rough / pressed phonation',
+      'Instant-to-instant instability suggests excess tension or pressed voicing.',
+      'Semi-occluded exercises (straw, lip trills) at easy volume reset the balance; yawn-sigh glides release laryngeal tension. Keep volume moderate for a week and re-test.']);
+    if (vib && !vib.present) diags.push(['No vibrato (optional)',
+      'A straight tone is legitimate in pop; classical/musical-theatre styles want 5–7 Hz vibrato, and R&B wants it late — straight first, blooming near the end of the note (drill it in <a href="#styles">Styles</a>).',
+      'Practice pulsing a held note at 4 pulses/sec (metronome), then let the pulses smooth out. It emerges from a relaxed larynx — never force a wobble.']);
+    if (!diags.length) diags.push(['Solid across the board', 'Nothing flagged on this take.',
+      'Push difficulty: re-test at the top and bottom of your range, at pianissimo, and on “ee”/“oo” vowels — weaknesses show at the edges.']);
+
+    $('diags').innerHTML = diags.map(([t, why, fix]) =>
+      `<div class="diag${t.startsWith('Solid') ? ' good' : ''}"><b>${t}</b><span class="small">${why}</span><p class="small" style="margin-top:6px">${fix}</p></div>`).join('');
+
+    const hist = UI.store.get('reports', []);
+    hist.push({ d: Date.now(), spr: res ? +res.sprDb.toFixed(1) : null, hnr: hnr != null ? +hnr.toFixed(1) : null,
+                cpps: cp ? +cp.cppsDb.toFixed(1) : null,
+                drift: stab ? +stab.driftCentsSD.toFixed(1) : null });
+    UI.store.set('reports', hist.slice(-60));
+    drawHistory(hist.slice(-60));
+  }
+
+  function drawHistory(hist) {
+    const withSpr = hist.filter((h) => h.spr != null);
+    if (withSpr.length < 2) return;
+    $('histCard').style.display = '';
+    const { ctx, w, h } = UI.canvas2d($('histChart'), 90);
+    ctx.clearRect(0, 0, w, h);
+    const vals = withSpr.map((x) => x.spr);
+    const lo = Math.min(...vals) - 2, hi = Math.max(...vals) + 2;
+    ctx.strokeStyle = UI.css('--violet'); ctx.lineWidth = 2; ctx.beginPath();
+    withSpr.forEach((p, i) => {
+      const x = 8 + (i / (withSpr.length - 1)) * (w - 16);
+      const y = h - 8 - ((p.spr - lo) / (hi - lo)) * (h - 16);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  $('playBtn').addEventListener('click', () => { if (take) Mic.playPcm(take.pcm, take.sampleRate); });
+  $('againBtn').addEventListener('click', () => { $('results').style.display = 'none'; window.scrollTo(0, 0); });
+
+  App.register('report', {
+    enter() {
+      if (!App.micOn) return;
+      liveC = UI.canvas2d($('liveTrace'), 120);
+      if (!live) { live = true; raf = requestAnimationFrame(liveLoop); }
+    },
+    leave() { live = false; cancelAnimationFrame(raf); },
+    onMic() {},
+  });
+})();
+</script>
+
+<script>
+/* ===================== Drills ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const HELP = {
+    match: 'Hear the note, hum it in your head, then sing and hold it. Green = within ±25¢, okay = ±50¢. Trace stays visible (training wheels on).',
+    blind: 'Same task, but the trace is hidden while you sing and revealed after — this is what makes gains stick when the screen goes away (guidance-hypothesis research).',
+    siren: 'Follow the moving line with a smooth “woooo” glide. Sirens build the gross pitch-motor map before precise targets.',
+    interval: 'You hear and sing the first note, then must jump the named interval unaided. Interval control is what melodies are made of.',
+  };
+
+  let mode = 'match', running = false;
+  let range = UI.store.get('range', null);
+  let exC = null;
+  let session = { ok: 0, n: 0, streak: 0 };
+  let curTargetHz = -1;
+
+  document.querySelectorAll('#modes button').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('#modes button').forEach((x) => x.classList.remove('on'));
+    b.classList.add('on');
+    mode = b.dataset.m;
+    $('modeHelp').textContent = HELP[mode];
+  }));
+
+  async function calibrate(which) {
+    $('status').textContent = 'sing and hold…';
+    const vals = [];
+    const t0 = performance.now();
+    while (performance.now() - t0 < 2500) {
+      const r = Mic.livePitch();
+      if (r && r.f0 > 0 && r.clarity > 0.6) vals.push(Notes.hzToMidi(r.f0));
+      await sleep(40);
+    }
+    if (vals.length < 10) { $('status').textContent = 'didn’t catch that — try again, louder'; return; }
+    vals.sort((a, b) => a - b);
+    const med = vals[vals.length >> 1];
+    range = range || {};
+    if (which === 'lo') range.lo = med; else range.hi = med;
+    if (range.lo != null && range.hi != null && range.lo > range.hi) [range.lo, range.hi] = [range.hi, range.lo];
+    UI.store.set('range', range);
+    $('status').textContent = 'got ' + Notes.name(Math.round(med));
+    updateRangeTxt();
+  }
+  $('lowBtn').addEventListener('click', () => calibrate('lo'));
+  $('highBtn').addEventListener('click', () => calibrate('hi'));
+  function updateRangeTxt() {
+    $('rangeTxt').textContent = range && range.lo != null && range.hi != null
+      ? 'Range: ' + Notes.name(Math.round(range.lo)) + ' – ' + Notes.name(Math.round(range.hi)) +
+        ' (targets stay a few semitones inside the ends)'
+      : 'Not set — targets default to a middle range. Setting it makes exercises fit your voice.';
+  }
+
+  function pickTargetMidi(span = 0) {
+    let lo = 55, hi = 67;
+    if (range && range.lo != null && range.hi != null && range.hi - range.lo > 6) {
+      lo = range.lo + 2; hi = range.hi - 2;
+    }
+    return lo + Math.random() * Math.max(1, hi - lo - span);
+  }
+
+  $('replayBtn').addEventListener('click', async () => {
+    await Mic.resume();
+    if (curTargetHz > 0) { Mic.toneOn(curTargetHz); setTimeout(Mic.toneOff, 900); }
+  });
+
+  $('goBtn').addEventListener('click', async () => {
+    if (running) return;
+    running = true; $('goBtn').disabled = true;
+    $('ex').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await Mic.resume();
+    try {
+      if (mode === 'match' || mode === 'blind') await runMatch(mode === 'blind');
+      else if (mode === 'siren') await runSiren();
+      else await runInterval();
+    } finally {
+      running = false; $('goBtn').disabled = false;
+    }
+  });
+
+  async function runMatch(blind) {
+    const midi = Math.round(pickTargetMidi());
+    const hz = Notes.midiToHz(midi);
+    curTargetHz = hz;
+    $('target').textContent = Notes.name(midi);
+    $('status').textContent = 'listen…';
+    Mic.toneOn(hz); await sleep(1200); Mic.toneOff();
+    $('status').textContent = 'hear it in your head…';
+    await sleep(800);
+    $('status').textContent = blind ? 'sing! (trace hidden)' : 'sing!';
+
+    const SECS = 3.5, pts = [], t0 = performance.now() / 1000;
+    while (performance.now() / 1000 - t0 < SECS) {
+      const r = Mic.livePitch();
+      const t = performance.now() / 1000 - t0;
+      pts.push({ t, v: r && r.f0 > 0 && r.clarity > 0.5 ? Notes.hzToMidi(r.f0) * 100 : NaN });
+      if (!blind) draw(pts, midi * 100, SECS);
+      else { exC.ctx.clearRect(0, 0, exC.w, exC.h); }
+      await sleep(30);
+    }
+    draw(pts, midi * 100, SECS);
+
+    const late = pts.filter((p) => p.t > 1.2 && !isNaN(p.v)).map((p) => p.v - midi * 100);
+    if (late.length < 8) { $('status').textContent = 'didn’t hear you — sing louder'; return; }
+    late.sort((a, b) => a - b);
+    const med = late[late.length >> 1];
+    const within50 = late.filter((c) => Math.abs(c) <= 50).length / late.length;
+    const ok = Math.abs(med) <= 50 && within50 >= 0.6;
+    score(ok);
+    $('status').textContent =
+      (Math.abs(med) <= 25 ? '🎯 excellent — ' : ok ? '✓ in tune — ' : '✗ off — ') +
+      'median ' + UI.fmt.cents(med) + (med > 50 ? ' (sharp)' : med < -50 ? ' (flat)' : '');
+  }
+
+  async function runSiren() {
+    const center = pickTargetMidi(8) + 4;
+    curTargetHz = Notes.midiToHz(center);
+    $('target').textContent = 'siren';
+    $('status').textContent = 'follow the line…';
+    const SECS = 6, pts = [], tgt = [], t0 = performance.now() / 1000;
+    Mic.toneOn(Notes.midiToHz(center));
+    while (performance.now() / 1000 - t0 < SECS) {
+      const t = performance.now() / 1000 - t0;
+      const m = center + 4 * Math.sin((t / SECS) * 2 * Math.PI);
+      Mic.toneSet(Notes.midiToHz(m));
+      tgt.push({ t, v: m * 100 });
+      const r = Mic.livePitch();
+      pts.push({ t, v: r && r.f0 > 0 && r.clarity > 0.5 ? Notes.hzToMidi(r.f0) * 100 : NaN });
+      drawSiren(pts, tgt, SECS);
+      await sleep(30);
+    }
+    Mic.toneOff();
+    let err = 0, cnt = 0;
+    for (let i = 0; i < pts.length; i++) {
+      if (isNaN(pts[i].v)) continue;
+      err += Math.min(600, Math.abs(pts[i].v - tgt[i].v)); cnt++;
+    }
+    if (cnt < 20) { $('status').textContent = 'didn’t hear you — sing louder'; return; }
+    const mean = err / cnt;
+    const ok = mean <= 75;
+    score(ok);
+    $('status').textContent = (ok ? '✓ ' : '✗ ') + 'average distance ' + mean.toFixed(0) + '¢ (target ≤75¢)';
+  }
+
+  const INTERVALS = [[2,'major 2nd'],[3,'minor 3rd'],[4,'major 3rd'],[5,'perfect 4th'],[7,'perfect 5th'],[12,'octave']];
+  async function runInterval() {
+    const [semis, iname] = INTERVALS[Math.floor(Math.random() * INTERVALS.length)];
+    const root = Math.round(pickTargetMidi(semis));
+    const goal = root + semis;
+    curTargetHz = Notes.midiToHz(root);
+    $('target').textContent = iname + ' ↑';
+    $('status').textContent = 'root: ' + Notes.name(root) + ' — listen…';
+    Mic.toneOn(curTargetHz); await sleep(1100); Mic.toneOff();
+    $('status').textContent = 'sing root (1.5s), then jump UP a ' + iname;
+    const SECS = 4.5, pts = [], t0 = performance.now() / 1000;
+    while (performance.now() / 1000 - t0 < SECS) {
+      const r = Mic.livePitch();
+      const t = performance.now() / 1000 - t0;
+      pts.push({ t, v: r && r.f0 > 0 && r.clarity > 0.5 ? Notes.hzToMidi(r.f0) * 100 : NaN });
+      draw(pts, goal * 100, SECS, root * 100);
+      await sleep(30);
+    }
+    const late = pts.filter((p) => p.t > 2.6 && !isNaN(p.v)).map((p) => p.v - goal * 100);
+    if (late.length < 8) { $('status').textContent = 'didn’t catch the top note — hold it longer'; return; }
+    late.sort((a, b) => a - b);
+    const med = late[late.length >> 1];
+    const ok = Math.abs(med) <= 60;
+    score(ok);
+    $('status').textContent = (ok ? '✓ ' : '✗ ') + 'top note ' + UI.fmt.cents(med) + ' from ' + Notes.name(goal);
+  }
+
+  function draw(pts, targetCents, secs, rootCents) {
+    const lo = targetCents - 700, hi = targetCents + 700;
+    const o = UI.drawTrace(exC.ctx, exC.w, exC.h, pts, { t0: 0, t1: secs, lo, hi, target: targetCents });
+    if (o && rootCents != null) {
+      exC.ctx.strokeStyle = 'rgba(147,160,180,0.8)'; exC.ctx.setLineDash([2, 4]);
+      exC.ctx.beginPath(); exC.ctx.moveTo(0, o.Y(rootCents)); exC.ctx.lineTo(exC.w, o.Y(rootCents)); exC.ctx.stroke();
+      exC.ctx.setLineDash([]);
+    }
+  }
+  function drawSiren(pts, tgt, secs) {
+    const base = tgt[0].v;
+    UI.drawTrace(exC.ctx, exC.w, exC.h, tgt, { t0: 0, t1: secs, lo: base - 800, hi: base + 800, color: 'rgba(111,227,165,0.7)' });
+    const { ctx, w, h } = exC;
+    const lo = base - 800, hi = base + 800;
+    ctx.lineWidth = 2; ctx.strokeStyle = UI.css('--accent'); ctx.beginPath();
+    let pen = false;
+    for (const p of pts) {
+      if (isNaN(p.v)) { pen = false; continue; }
+      const x = (p.t / secs) * w, y = h - ((p.v - lo) / (hi - lo)) * h;
+      if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function score(ok) {
+    session.n++; if (ok) { session.ok++; session.streak++; } else session.streak = 0;
+    $('scoreTxt').textContent = session.ok + ' / ' + session.n;
+    $('streakTxt').textContent = session.streak;
+    const day = new Date().toISOString().slice(0, 10);
+    const log = UI.store.get('exlog', {});
+    log[day] = log[day] || { n: 0, ok: 0 };
+    log[day].n++; if (ok) log[day].ok++;
+    UI.store.set('exlog', log);
+  }
+
+  App.register('drills', {
+    enter() {
+      if (!App.micOn) return;
+      exC = UI.canvas2d($('ex'), 200);
+      $('modeHelp').textContent = HELP[mode];
+      updateRangeTxt();
+    },
+    leave() {},
+    onMic() {},
+  });
+})();
+</script>
+
+<script>
+/* ===================== Compare ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const MAXS = 30;
+  let ref = null, att = null;
+
+  const idb = {
+    open: () => new Promise((res, rej) => {
+      const r = indexedDB.open('singing', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    }),
+    async set(k, v) { const db = await this.open(); return new Promise((res, rej) => {
+      const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k);
+      tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); },
+    async get(k) { const db = await this.open(); return new Promise((res, rej) => {
+      const rq = db.transaction('kv').objectStore('kv').get(k);
+      rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); }); },
+  };
+
+  async function recordWithCountdown(btn, secsCap) {
+    btn.disabled = true;
+    const orig = btn.textContent;
+    await Mic.resume();
+    for (let c = 3; c >= 1; c--) { btn.textContent = String(c) + '…'; await sleep(650); }
+    btn.textContent = '■ Stop';
+    btn.disabled = false;
+    btn.classList.add('recording');
+    Mic.beginRecording();
+    return new Promise((resolve) => {
+      const t0 = performance.now();
+      const tick = setInterval(() => {
+        if (performance.now() - t0 >= secsCap * 1000) stop();
+      }, 250);
+      function stop() {
+        clearInterval(tick);
+        btn.removeEventListener('click', stop);
+        btn.textContent = orig;
+        btn.classList.remove('recording');
+        resolve(Mic.endRecording());
+      }
+      btn.addEventListener('click', stop);
+    });
+  }
+
+  $('refRecBtn').addEventListener('click', async () => {
+    if (Mic.isRecording()) return;
+    const take = await recordWithCountdown($('refRecBtn'), MAXS);
+    if (take.pcm.length / take.sampleRate < 1) { $('refStatus').textContent = 'Too short — try again.'; return; }
+    setReference(take.pcm, take.sampleRate, 'recorded reference');
+    try { await idb.set('reference', { pcm: ref.pcm.buffer, sampleRate: ref.sampleRate, label: ref.label }); } catch (_) {}
+  });
+
+  $('refFile').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    $('refStatus').textContent = 'Decoding ' + file.name + '…';
+    try {
+      const ab = await file.arrayBuffer();
+      const ctx = Mic.context();
+      const audio = await new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej));
+      let pcm = audio.getChannelData(0);
+      if (audio.numberOfChannels > 1) {
+        const b = audio.getChannelData(1); const mix = new Float32Array(pcm.length);
+        for (let i = 0; i < pcm.length; i++) mix[i] = (pcm[i] + b[i]) / 2;
+        pcm = mix;
+      }
+      const cap = Math.min(pcm.length, MAXS * audio.sampleRate);
+      setReference(pcm.slice(0, cap), audio.sampleRate, file.name);
+      try { await idb.set('reference', { pcm: ref.pcm.buffer, sampleRate: ref.sampleRate, label: ref.label }); } catch (_) {}
+    } catch (err) {
+      $('refStatus').textContent = 'Couldn’t decode that file (Safari handles m4a, mp3, wav — not ogg).';
+    }
+  });
+
+  function setReference(pcm, sampleRate, label) {
+    const track = Track.analyze(pcm, sampleRate);
+    const voiced = track.f0.reduce((a, v) => a + (v > 0 ? 1 : 0), 0);
+    if (voiced < 30) {
+      $('refStatus').textContent = 'Loaded, but almost no clear single-voice pitch found — is this a full mix? Use a vocal-only file or record yourself.';
+    }
+    ref = { pcm, sampleRate, track, label };
+    $('refStatus').textContent = '✓ ' + label + ' · ' + (pcm.length / sampleRate).toFixed(1) + ' s, ' +
+      Math.round(100 * voiced / track.f0.length) + '% voiced';
+    const c = $('refCanvas'); c.style.display = '';
+    const rc = UI.canvas2d(c, 120);
+    UI.drawTrace(rc.ctx, rc.w, rc.h, toPts(ref.track), { color: UI.css('--good') });
+    $('refPlayRow').style.display = '';
+    $('attRecBtn').disabled = false;
+  }
+
+  $('refPlayBtn').addEventListener('click', () => ref && Mic.playPcm(ref.pcm, ref.sampleRate));
+  $('attPlayBtn').addEventListener('click', () => att && Mic.playPcm(att.pcm, att.sampleRate));
+
+  $('attRecBtn').addEventListener('click', async () => {
+    if (!ref || Mic.isRecording()) return;
+    const refSecs = ref.pcm.length / ref.sampleRate;
+    const take = await recordWithCountdown($('attRecBtn'), Math.min(MAXS, refSecs + 6));
+    if (take.pcm.length / take.sampleRate < 1) { $('attStatus').textContent = 'Too short — try again.'; return; }
+    att = { pcm: take.pcm, sampleRate: take.sampleRate, track: Track.analyze(take.pcm, take.sampleRate) };
+    $('attPlayBtn').disabled = false;
+    $('attStatus').textContent = 'Analyzing…';
+    await sleep(30);
+    compare();
+  });
+
+  function toPts(track, shiftCents = 0) {
+    const pts = [];
+    for (let i = 0; i < track.times.length; i++) {
+      pts.push({ t: track.times[i], v: isNaN(track.cents[i]) ? NaN : track.cents[i] + shiftCents });
+    }
+    return pts;
+  }
+
+  function compare() {
+    const r = Dtw.align(ref.track.cents, att.track.cents, { allowTranspose: true });
+    $('resultCard').style.display = '';
+    $('resultCard').classList.remove('reveal'); void $('resultCard').offsetWidth;
+    $('resultCard').classList.add('reveal');
+    setTimeout(() => $('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+    if (r.meanAbsCents == null) {
+      $('scoreBig').textContent = '—';
+      $('scoreSub').textContent = 'Couldn’t align the two takes — was there singing in both?';
+      $('attStatus').textContent = '';
+      return;
+    }
+    const score = Math.round(Math.max(0, Math.min(100,
+      0.7 * r.withinPct + 0.3 * Math.max(0, 100 - r.meanAbsCents))));
+    animateScore(score);
+    $('scoreBig').style.color = score >= 80 ? UI.css('--good') : score >= 55 ? UI.css('--warn') : UI.css('--bad');
+    $('scoreSub').textContent = score >= 80 ? 'Locked in.' : score >= 55 ? 'Close — listen to both and chase the gaps.' : 'Keep at it — play the reference, hum along, then retry.';
+    $('attStatus').textContent = '';
+
+    const cc = UI.canvas2d($('cmpCanvas'), 200);
+    const refPts = toPts(ref.track);
+    const warped = [];
+    for (const [ri, ai] of r.path) {
+      const v = att.track.cents[ai];
+      warped.push({ t: ref.track.times[ri], v: isNaN(v) ? NaN : v + r.shift });
+    }
+    UI.drawTrace(cc.ctx, cc.w, cc.h, refPts, { color: 'rgba(111,227,165,0.85)' });
+    overlay(cc, refPts, warped);
+
+    $('cmpTable').innerHTML = [
+      ['Average pitch distance', r.meanAbsCents.toFixed(0) + '¢', 'across time-aligned voiced moments (≤50¢ reads as in tune)'],
+      ['Time in tune (±50¢)', r.withinPct.toFixed(0) + '%', 'share of the melody sung within a quarter tone'],
+      ['Detected transposition', (r.shift / 100).toFixed(0) + ' semitones', 'your key vs the reference — not penalized'],
+    ].map(([a, b, c]) => `<tr><td>${a}<div class="small dim">${c}</div></td><td>${b}</td></tr>`).join('');
+  }
+
+  let scoreAnim = 0;
+  function animateScore(target) {
+    cancelAnimationFrame(scoreAnim);
+    const t0 = performance.now(), dur = 700;
+    (function tick(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      $('scoreBig').textContent = Math.round(target * eased);
+      if (p < 1) scoreAnim = requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  function overlay(cc, basePts, pts) {
+    let lo = Infinity, hi = -Infinity;
+    for (const p of basePts) if (!isNaN(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
+    for (const p of pts) if (!isNaN(p.v)) { lo = Math.min(lo, p.v); hi = Math.max(hi, p.v); }
+    lo = Math.floor(lo / 100 - 2) * 100; hi = Math.ceil(hi / 100 + 2) * 100;
+    const t0 = basePts[0] ? basePts[0].t : 0, t1 = basePts.length ? basePts[basePts.length - 1].t : 1;
+    UI.drawTrace(cc.ctx, cc.w, cc.h, basePts, { lo, hi, t0, t1, color: 'rgba(74,222,128,0.9)', lineWidth: 3.5 });
+    const { ctx, w, h } = cc;
+    ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(76,194,255,0.85)'; ctx.beginPath();
+    let pen = false;
+    for (const p of pts) {
+      if (isNaN(p.v)) { pen = false; continue; }
+      const x = ((p.t - t0) / Math.max(0.001, t1 - t0)) * w;
+      const y = h - ((p.v - lo) / (hi - lo)) * h;
+      if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  App.register('compare', {
+    enter() {},
+    leave() {},
+    async onMic() {
+      try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (_) {}
+      try {
+        const saved = await idb.get('reference');
+        if (saved && saved.pcm) {
+          setReference(new Float32Array(saved.pcm), saved.sampleRate, saved.label + ' (saved)');
+        }
+      } catch (_) {}
+    },
+  });
+})();
+</script>
+
+<script>
+/* ===================== Warm-up ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const STEPS = [
+    ['Gentle sighs', 45, 'Easy descending “hoo” sighs from a comfortable high note. Loose jaw, no volume.'],
+    ['Lip trills', 90, 'Brrrr — steady pitch first, then slow up-down glides. If lips won’t trill, press cheeks lightly with two fingers, or use the straw instead.'],
+    ['Straw: steady notes', 90, 'Phonate through the straw on comfortable pitches. You should feel gentle buzzing pressure behind the lips. No air through the nose (check by pinching it — sound shouldn’t change).'],
+    ['Straw: slides', 90, 'Slow sirens through the straw, bottom to top of your easy range and back. Keep the air steady — the slide should not get louder going up.'],
+    ['Straw: sing a phrase', 60, 'Sing a line of an actual song through the straw.'],
+    ['Hum “mmm”', 60, 'Hum until you feel a tickle on the lips/nose. That buzz is forward resonance — remember the feeling.'],
+    ['“Nya nya nya”', 45, 'Bratty, bright, slightly obnoxious “nya” on easy pitches — this is twang, the fastest route to ring. Then sing “ah” keeping that edge.'],
+  ];
+
+  let before = null, running = false;
+
+  const stepsEl = $('steps');
+  STEPS.forEach(([name, secs, how], i) => {
+    const d = document.createElement('div');
+    d.className = 'diag good';
+    d.innerHTML = `<b>${i + 1}. ${name} <span class="dim small">(${secs}s)</span></b><span class="small">${how}</span>
+      <p style="margin-top:6px"><button data-i="${i}" class="small">▶ Start ${secs}s timer</button></p>`;
+    stepsEl.appendChild(d);
+  });
+  stepsEl.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (b && !running) runStep(+b.dataset.i);
+  });
+  $('runAll').addEventListener('click', async () => {
+    if (running) return;
+    for (let i = 0; i < STEPS.length; i++) await runStep(i);
+    $('stepName').textContent = 'done — now record your “after” and go sing';
+  });
+
+  async function runStep(i) {
+    running = true;
+    const [name, secs] = STEPS[i];
+    $('stepName').textContent = name;
+    for (let t = secs; t >= 0; t--) {
+      $('timer').textContent = t;
+      await sleep(1000);
+    }
+    $('timer').textContent = '✓';
+    running = false;
+  }
+
+  async function grabAh() {
+    await Mic.start();
+    document.body.classList.add('mic-on');
+    for (let c = 3; c >= 1; c--) { $('abStatus').textContent = 'recording in ' + c + '…'; await sleep(650); }
+    $('abStatus').textContent = 'sing “ahh”…';
+    Mic.beginRecording();
+    await sleep(5000);
+    const take = Mic.endRecording();
+    $('abStatus').textContent = '';
+    const track = Track.analyze(take.pcm, take.sampleRate);
+    const [s, e] = Metrics.longestVoicedRun(track);
+    if ((e - s) * track.hopSec < 2) { $('abStatus').textContent = 'Didn’t catch enough voice — try again, louder.'; return null; }
+    return {
+      res: Metrics.resonance(take.pcm, take.sampleRate, track, s, e),
+      hnr: Metrics.hnr(track, s, e),
+    };
+  }
+
+  $('beforeBtn').addEventListener('click', async () => {
+    $('beforeBtn').disabled = true;
+    before = await grabAh().catch(() => null);
+    $('beforeBtn').disabled = false;
+    if (before) {
+      $('abStatus').textContent = '“Before” captured. Do the routine, then record “after.”';
+      $('afterBtn').disabled = false;
+    }
+  });
+
+  $('afterBtn').addEventListener('click', async () => {
+    $('afterBtn').disabled = true;
+    const after = await grabAh().catch(() => null);
+    $('afterBtn').disabled = false;
+    if (!after || !before || !after.res || !before.res) return;
+    const dSpr = after.res.sprDb - before.res.sprDb;
+    const dHnr = (after.hnr != null && before.hnr != null) ? after.hnr - before.hnr : null;
+    $('abResult').innerHTML = `
+      <table class="metrics">
+        <tr><td>Ring (SPR)</td><td>${before.res.sprDb.toFixed(1)} → ${after.res.sprDb.toFixed(1)} dB
+          ${UI.tag(dSpr > 0.5 ? 'good' : 'warn', (dSpr >= 0 ? '+' : '') + dSpr.toFixed(1) + ' dB')}</td></tr>
+        ${dHnr != null ? `<tr><td>Clarity (HNR)</td><td>${before.hnr.toFixed(1)} → ${after.hnr.toFixed(1)} dB
+          ${UI.tag(dHnr > 0.5 ? 'good' : 'warn', (dHnr >= 0 ? '+' : '') + dHnr.toFixed(1) + ' dB')}</td></tr>` : ''}
+      </table>
+      <p class="small dim">${dSpr > 0.5 ? 'More energy in the ring band — that’s the warm-up working. Sing now, while it lasts.' :
+        'No jump this time — that’s normal on some days. The reliable effect is that singing feels easier; the numbers drift up over weeks.'}</p>`;
+  });
+
+  App.register('warmup', { enter() {}, leave() {}, onMic() {} });
+})();
+</script>
+
+<script>
+/* ===================== Styles ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const STYLES = {
+    'R&B': {
+      sound: 'Conversational vowels, mix + a little twang brightness (not opera ring), intimacy in the verses, controlled power in the chorus.',
+      dos: ['Runs on the minor pentatonic, descending, landing on a chord tone — drill below',
+        'Slide into notes on purpose: chosen depth, chosen speed, stable landing',
+        'Straight tone first, vibrato blooming late in long notes',
+        'Breathy verse vs closed chorus — the contrast is the craft',
+        'Fry onsets and deliberate falsetto flips as ornaments (land them stable)',
+        'Back-phrase: start late, catch up by the end of the line'],
+      donts: ['Continuous wide operatic vibrato', 'Hitting every note dead-center with clean onsets (reads stiff)', 'Chasing the classical “ring” metric — brightness comes from twang here'],
+      bench: 'Benchmarks: runs 4→8 notes/s in-grid · scoops 100–300¢ over 80–250 ms · vibrato onset >40% of the note · blue-note zones around +319¢ and +1038¢ from the tonic are fair game.',
+    },
+    'Pop': {
+      sound: 'Speech-like and close to the mic. Clean centered notes with occasional shallow scoops, light or terminal-only vibrato, fry and airy onsets as color.',
+      dos: ['Note centers within ±25–50¢', 'Short rhythm-first runs', 'Save breath/fry for deliberate moments'],
+      donts: ['Heavy melisma everywhere', 'Big continuous vibrato'],
+      bench: 'Benchmarks: scoops ≤200¢ · vibrato extent < ±50¢.',
+    },
+    'Rock': {
+      sound: 'Bright, forward, loud — twang carries it. Any distortion/growl rides on top of a stable clean tone, never instead of one.',
+      dos: ['Build the ring band (tuner’s purple zone) via twang', 'Straight or wide-loose vibrato both fine'],
+      donts: ['Pressing the throat for volume — that’s what the jitter/shimmer flags catch'],
+      bench: 'Benchmarks: high 2–4 kHz energy at full voice; pitch stays stable under grit.',
+    },
+    'Jazz': {
+      sound: 'Intimate, flexible, behind the beat. The melody is negotiable; the phrase-end downbeat is not.',
+      dos: ['Vibrato as a tail on note-ends', 'Back-phrasing with consistent lag', 'Dynamic shading over power'],
+      donts: ['Metronomic on-the-beat delivery', 'Constant vibrato'],
+      bench: 'Benchmarks: long vibrato delay; onset lag tens of ms to a beat, realigned by phrase end.',
+    },
+    'Musical theatre': {
+      sound: 'Two engines: “legit” (classical-adjacent, tall vowels) and belt (speechy, bright, H2-dominant). Text always first.',
+      dos: ['Belt = wide jaw, bright speech vowel, twang — not throat push', 'Straight through the phrase, vibrato release on final sustains'],
+      donts: ['Scooping between notes in legit numbers'],
+      bench: 'Benchmarks: in belt the 2nd harmonic dominates; terminal vibrato ~5–7 Hz.',
+    },
+    'Classical': {
+      sound: 'Continuous spin, ring at 2.8–3.4 kHz, modified “tall” vowels, seamless legato.',
+      dos: ['Vibrato from onset, 5–6.5 Hz, ±50–100¢', 'Chase the report’s SPR/ring metrics — here they are the target', 'Clean simultaneous onsets'],
+      donts: ['Scoops, fry, audible register flips'],
+      bench: 'Benchmarks: vibrato present ≥80% of sustains · SPR toward −15 dB · scoop depth ≈ 0.',
+    },
+  };
+
+  const pick = $('stylePick');
+  Object.keys(STYLES).forEach((name) => {
+    const b = document.createElement('button');
+    b.textContent = name;
+    if (name === (UI.store.get('style', 'R&B'))) b.classList.add('on');
+    b.addEventListener('click', () => {
+      pick.querySelectorAll('button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      UI.store.set('style', name);
+      showStyle(name);
+    });
+    pick.appendChild(b);
+  });
+  function showStyle(name) {
+    const s = STYLES[name];
+    $('styleInfo').innerHTML = `
+      <p class="small">${s.sound}</p>
+      <div class="diag good"><b>Do</b><span class="small">${s.dos.map((d) => '• ' + d).join('<br>')}</span></div>
+      <div class="diag"><b>Avoid</b><span class="small">${s.donts.map((d) => '• ' + d).join('<br>')}</span></div>
+      <p class="small dim">${s.bench}</p>`;
+  }
+  showStyle(UI.store.get('style', 'R&B'));
+
+  let runC, scoopC, vibC;
+
+  function baseMidi(spanSemis) {
+    const range = UI.store.get('range', null);
+    if (range && range.lo != null && range.hi != null && range.hi - range.lo > spanSemis + 3) {
+      return Math.round((range.lo + range.hi) / 2 - spanSemis / 2);
+    }
+    return 57 - Math.round(spanSemis / 2) + 5;
+  }
+
+  const PATTERNS = [
+    ['Walk-down', [12, 10, 7, 5, 3, 0]],
+    ['Up & down', [0, 3, 5, 7, 10, 12, 10, 7, 5, 3, 0]],
+    ['Turn', [3, 5, 3, 0]],
+    ['Turn (inverted)', [5, 3, 5, 7]],
+    ['Fragment: top', [12, 10, 7]],
+    ['Fragment: bottom', [7, 5, 3, 0]],
+  ];
+  const NPS = [2, 3, 4, 5, 6, 8];
+  let patIdx = 0, npsIdx = 1, busy = false;
+
+  PATTERNS.forEach(([name], i) => {
+    const b = document.createElement('button');
+    b.textContent = name;
+    if (i === 0) b.classList.add('on');
+    b.addEventListener('click', () => {
+      $('patternPick').querySelectorAll('button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on'); patIdx = i;
+    });
+    $('patternPick').appendChild(b);
+  });
+  NPS.forEach((v, i) => {
+    const b = document.createElement('button');
+    b.textContent = v;
+    if (i === npsIdx) b.classList.add('on');
+    b.addEventListener('click', () => {
+      $('npsPick').querySelectorAll('button').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on'); npsIdx = i; $('npsVal').textContent = v;
+    });
+    $('npsPick').appendChild(b);
+  });
+  $('npsVal').textContent = NPS[npsIdx];
+
+  async function playPattern(tonic, offsets, nps) {
+    const dur = 1000 / nps;
+    Mic.toneOn(Notes.midiToHz(tonic + offsets[0]));
+    for (let i = 1; i < offsets.length; i++) {
+      await sleep(dur);
+      Mic.toneSet(Notes.midiToHz(tonic + offsets[i]));
+    }
+    await sleep(dur);
+    Mic.toneOff();
+  }
+
+  $('runGo').addEventListener('click', async () => {
+    if (busy) return; busy = true; $('runGo').disabled = true;
+    try {
+      await Mic.resume();
+      const [pname, offsets] = PATTERNS[patIdx];
+      const nps = NPS[npsIdx];
+      const span = Math.max(...offsets) - Math.min(...offsets);
+      const tonic = baseMidi(span) - Math.min(...offsets);
+      $('runStatus').textContent = 'listen… (' + pname + ' from ' + Notes.name(tonic) + ')';
+      await playPattern(tonic, offsets, nps);
+      $('runStatus').textContent = 'hear it in your head…';
+      await sleep(600);
+      $('runStatus').textContent = 'sing it! (any octave)';
+      const secs = offsets.length / nps + 1.2;
+      Mic.beginRecording();
+      await sleep(secs * 1000);
+      const take = Mic.endRecording();
+      $('runStatus').textContent = 'analyzing…';
+      await sleep(30);
+      scoreRun(take, tonic, offsets, nps);
+      $('runCanvas').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } finally { busy = false; $('runGo').disabled = false; }
+  });
+
+  function scoreRun(take, tonic, offsets, nps) {
+    const att = Track.analyze(take.pcm, take.sampleRate);
+    const dt = att.hopSec, noteDur = 1 / nps;
+    const total = offsets.length * noteDur;
+    const nIdeal = Math.round(total / dt);
+    const ideal = new Float32Array(nIdeal), noteOf = new Int16Array(nIdeal);
+    for (let i = 0; i < nIdeal; i++) {
+      const k = Math.min(offsets.length - 1, Math.floor((i * dt) / noteDur));
+      ideal[i] = (tonic + offsets[k]) * 100;
+      noteOf[i] = k;
+    }
+    const r = Dtw.align(ideal, att.cents, { allowTranspose: true });
+    if (r.meanAbsCents == null || r.voicedPairs < offsets.length * 2) {
+      $('runStatus').textContent = 'didn’t hear enough — sing louder, keep it connected on one vowel';
+      return;
+    }
+    const per = offsets.map(() => []);
+    for (const [ri, ai] of r.path) {
+      const v = att.cents[ai];
+      if (ri < nIdeal && !isNaN(v)) per[noteOf[ri]].push(v + r.shift - ideal[ri]);
+    }
+    const chips = [];
+    let good = 0;
+    const meds = per.map((arr) => {
+      if (!arr.length) return null;
+      arr.sort((a, b) => a - b);
+      return arr[arr.length >> 1];
+    });
+    meds.forEach((med, k) => {
+      const anchor = k === offsets.length - 1;
+      const tol = anchor ? 25 : 50;
+      const okC = med != null && Math.abs(med) <= tol;
+      if (okC) good++;
+      const label = Notes.name(tonic + offsets[k]) + (anchor ? ' ★' : '');
+      chips.push(UI.tag(med == null ? 'bad' : okC ? 'good' : Math.abs(med) <= 80 ? 'warn' : 'bad',
+        label + ' ' + (med == null ? 'missed' : UI.fmt.cents(med))));
+    });
+    $('runNotes').innerHTML = chips.join(' ') +
+      `<p class="small dim" style="margin-top:6px">★ anchor note — scored at ±25¢; the rest at ±50¢ (pitch in fast runs is perceived categorically). Clean pass = every chip green → bump the speed one notch.</p>`;
+    const pass = good === offsets.length;
+    $('runStatus').textContent = pass
+      ? '🔥 clean at ' + nps + ' notes/sec — go up one speed'
+      : good + '/' + offsets.length + ' notes in the grid at ' + nps + ' nps' +
+        (good >= offsets.length - 1 ? ' — nearly there' : ' — drop a speed and fragment it');
+
+    const pts = [], warped = [];
+    for (let i = 0; i < nIdeal; i++) pts.push({ t: i * dt, v: ideal[i] });
+    for (const [ri, ai] of r.path) {
+      if (ri < nIdeal) warped.push({ t: ri * dt, v: isNaN(att.cents[ai]) ? NaN : att.cents[ai] + r.shift });
+    }
+    const lo = Math.min(...offsets) * 100 + tonic * 100 - 300, hi = Math.max(...offsets) * 100 + tonic * 100 + 300;
+    UI.drawTrace(runC.ctx, runC.w, runC.h, pts, { lo, hi, t0: 0, t1: total, color: 'rgba(111,227,165,0.8)' });
+    const { ctx, w, h } = runC;
+    ctx.lineWidth = 2; ctx.strokeStyle = UI.css('--accent'); ctx.beginPath();
+    let pen = false;
+    for (const p of warped) {
+      if (isNaN(p.v)) { pen = false; continue; }
+      const x = (p.t / total) * w, y = h - ((p.v - lo) / (hi - lo)) * h;
+      if (!pen) { ctx.moveTo(x, y); pen = true; } else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  $('scoopGo').addEventListener('click', async () => {
+    if (busy) return; busy = true; $('scoopGo').disabled = true;
+    try {
+      await Mic.resume();
+      const midi = baseMidi(0) + 4;
+      const targetCents = midi * 100;
+      $('scoopStatus').textContent = 'target: ' + Notes.name(midi) + ' — listen…';
+      Mic.toneOn(Notes.midiToHz(midi)); await sleep(1000); Mic.toneOff();
+      $('scoopStatus').textContent = 'start LOW, slide in, then hold it straight…';
+      Mic.beginRecording();
+      await sleep(2600);
+      const take = Mic.endRecording();
+      const t = Track.analyze(take.pcm, take.sampleRate);
+      const [s, e] = Metrics.longestVoicedRun(t, 0.5);
+      if ((e - s) * t.hopSec < 1.0) { $('scoopStatus').textContent = 'didn’t catch it — louder, and hold the landing'; return; }
+      const seg = t.cents.subarray(s, e).slice().filter((v) => !isNaN(v)).sort((a, b) => a - b);
+      const med = seg[seg.length >> 1];
+      const shift = Math.round((med - targetCents) / 1200) * 1200;
+      const tgt = targetCents + shift;
+      let minV = Infinity;
+      const onsetFrames = Math.min(e - s, Math.round(0.35 / t.hopSec));
+      for (let i = s; i < s + onsetFrames; i++) if (!isNaN(t.cents[i])) minV = Math.min(minV, t.cents[i]);
+      const depth = tgt - minV;
+      let landIdx = -1;
+      for (let i = s; i < e - 2; i++) {
+        if (Math.abs(t.cents[i] - tgt) <= 35 && Math.abs(t.cents[i + 1] - tgt) <= 35 && Math.abs(t.cents[i + 2] - tgt) <= 35) { landIdx = i; break; }
+      }
+      const ttt = landIdx >= 0 ? (landIdx - s) * t.hopSec * 1000 : null;
+      let landSD = null;
+      if (landIdx >= 0 && e - landIdx > 8) {
+        const st = Metrics.stability(t, landIdx, e);
+        landSD = st ? st.driftCentsSD : null;
+      }
+      const pts = [];
+      for (let i = s; i < e; i++) pts.push({ t: t.times[i], v: t.cents[i] });
+      UI.drawTrace(scoopC.ctx, scoopC.w, scoopC.h, pts, { target: tgt });
+      let v;
+      if (ttt == null) v = ['bad', 'Never landed — the slide has to arrive and sit within ±35¢. Slow it down, aim the landing.'];
+      else if (depth < 60) v = ['warn', 'Landed, but that was a straight onset (' + depth.toFixed(0) + '¢ dip) — clean pop/classical style. For an R&B scoop, start 1–3 semitones below on purpose.'];
+      else if (depth > 350) v = ['warn', 'Big drama (' + depth.toFixed(0) + '¢). Landed it, but keep most scoops inside ~300¢ or every note sounds like a siren.'];
+      else if (ttt > 400) v = ['warn', 'Right depth (' + depth.toFixed(0) + '¢) but the ride took ' + ttt.toFixed(0) + ' ms — that reads as flat singing, not style. Arrive within ~250 ms.'];
+      else if (landSD != null && landSD > 25) v = ['warn', 'Scoop shape ✓ (' + depth.toFixed(0) + '¢ in ' + ttt.toFixed(0) + ' ms) but the landing wobbled ±' + landSD.toFixed(0) + '¢ — the hold is what sells it.'];
+      else v = ['good', '💯 Controlled scoop: ' + depth.toFixed(0) + '¢ deep, landed in ' + ttt.toFixed(0) + ' ms, held steady. That’s the R&B move — now vary the depth on purpose (100 / 200 / 300¢).'];
+      $('scoopVerdict').innerHTML = '<div class="diag' + (v[0] === 'good' ? ' good' : '') + '"><span class="small">' + v[1] + '</span></div>';
+      $('scoopStatus').textContent = '';
+    } finally { busy = false; $('scoopGo').disabled = false; }
+  });
+
+  $('vibGo').addEventListener('click', async () => {
+    if (busy) return; busy = true; $('vibGo').disabled = true;
+    try {
+      await Mic.resume();
+      const midi = baseMidi(0) + 2;
+      $('vibStatus').textContent = 'target: ' + Notes.name(midi) + ' — listen…';
+      Mic.toneOn(Notes.midiToHz(midi)); await sleep(900); Mic.toneOff();
+      $('vibStatus').textContent = 'hold it ~4 s: straight… then let vibrato bloom';
+      Mic.beginRecording();
+      await sleep(4200);
+      const take = Mic.endRecording();
+      const t = Track.analyze(take.pcm, take.sampleRate);
+      const [s, e] = Metrics.longestVoicedRun(t, 0.5);
+      const durS = (e - s) * t.hopSec;
+      if (durS < 2.5) { $('vibStatus').textContent = 'need ≥2.5 s of held note — big breath, go again'; return; }
+      const mid = s + Math.floor((e - s) / 2);
+      const first = Metrics.vibrato(t, s, mid);
+      const second = Metrics.vibrato(t, mid, e);
+      let onsetPct = null;
+      const wf = Math.round(1.0 / t.hopSec), step = Math.round(0.25 / t.hopSec);
+      for (let i = s; i + wf <= e; i += step) {
+        const v = Metrics.vibrato(t, i, i + wf);
+        if (v && v.present) { onsetPct = 100 * (i - s) / (e - s); break; }
+      }
+      const pts = [];
+      for (let i = s; i < e; i++) pts.push({ t: t.times[i], v: t.cents[i] });
+      UI.drawTrace(vibC.ctx, vibC.w, vibC.h, pts);
+      let msg;
+      if (!second || !second.present) {
+        msg = ['warn', 'Held straight all the way (' + durS.toFixed(1) + ' s) — legitimate pop choice. To find vibrato: pulse the note gently 4×/sec, then let the pulses smooth out.'];
+      } else if (first && first.present && (onsetPct == null || onsetPct < 25)) {
+        msg = ['warn', 'Vibrato from the very start (' + second.rateHz.toFixed(1) + ' Hz) — that’s the classical shape. For R&B, pin it straight for the first half, then release.'];
+      } else {
+        const rateTxt = second.rateHz.toFixed(1) + ' Hz, ±' + second.extentCents.toFixed(0) + '¢';
+        const rateOk = second.rateHz >= 4.5 && second.rateHz <= 7.5 && second.extentCents <= 100;
+        msg = [rateOk ? 'good' : 'warn',
+          '🎤 Delayed bloom at ~' + (onsetPct == null ? '50' : onsetPct.toFixed(0)) + '% of the note (' + rateTxt + ').' +
+          (rateOk ? ' Textbook R&B sustain.' : second.extentCents > 100 ? ' Rein the width in a touch (≤ ±80–100¢ reads modern).' : ' Aim for 5–7 Hz.')];
+      }
+      $('vibVerdict').innerHTML = '<div class="diag' + (msg[0] === 'good' ? ' good' : '') + '"><span class="small">' + msg[1] + '</span></div>';
+      $('vibStatus').textContent = '';
+    } finally { busy = false; $('vibGo').disabled = false; }
+  });
+
+  App.register('styles', {
+    enter() {
+      if (!App.micOn) return;
+      runC = UI.canvas2d($('runCanvas'), 170);
+      scoopC = UI.canvas2d($('scoopCanvas'), 150);
+      vibC = UI.canvas2d($('vibCanvas'), 150);
+    },
+    leave() {},
+    onMic() {},
+  });
+})();
+</script>
+
+<script>
+/* ===================== Home + boot ===================== */
+App.register('home', { enter() {}, leave() {}, onMic() {} });
+App.init();
+</script>
+
 </body>
 </html>

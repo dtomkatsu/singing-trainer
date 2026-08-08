@@ -37,18 +37,19 @@ thresholds, caveats) and **[STYLE-GUIDE.md](STYLE-GUIDE.md)** (genre acoustics).
 Plain HTML + vanilla JS, no dependencies, no build:
 
 ```
-index.html            home + the science-in-one-screen
-tuner.html             live pitch + spectrum
-report.html            sustained-vowel analysis -> weakness diagnosis
-exercises.html         match / blind / siren / interval trainers
-compare.html           reference-vs-attempt DTW comparison
-warmup.html            SOVT routine + before/after measurement
-styles.html            genre guidance + R&B runs trainer
+index.html            the whole app: one page, seven modes
+                       (home / tuner / report / drills / compare / warm-up / styles),
+                       hash-routed with animated transitions; the mic is granted
+                       once and stays live across modes
+tuner.html ...         redirect stubs so old deep links keep working
 style.css
-js/dsp.js              McLeod pitch detection, FFT, voice metrics, DTW, WAV
+js/dsp.js              McLeod pitch detection + Viterbi decode, FFT, voice metrics, DTW, WAV
 js/mic.js              iOS-safe mic capture, PCM recorder, tone player
-js/ui.js               nav, canvas helpers, localStorage
+js/ui.js               canvas helpers, localStorage
 tests/dsp.test.js      node tests/dsp.test.js
+tests/eval-pitch.js    synthetic pitch-accuracy harness
+tests/eval-real.js     vocadito (real annotated singing) harness
+tests/eval-mir1k.js    MIR-1K harness
 ```
 
 Engineering notes (the iOS-specific reasoning is in RESEARCH.md §12): pitch detection is a

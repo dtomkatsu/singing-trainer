@@ -1,31 +1,7 @@
-// ui.js — shared nav, canvas helpers, and small utilities.
+// ui.js — shared canvas helpers and small utilities (nav lives in index.html's App).
 'use strict';
 
 const UI = (() => {
-  const PAGES = [
-    ['index.html', 'Home', '🏠'],
-    ['tuner.html', 'Tuner', '🎯'],
-    ['report.html', 'Report', '🩺'],
-    ['exercises.html', 'Drills', '🎹'],
-    ['compare.html', 'Compare', '🎼'],
-    ['warmup.html', 'Warm-up', '🥤'],
-    ['styles.html', 'Styles', '🎤'],
-  ];
-
-  function nav(current) {
-    const bar = document.createElement('nav');
-    bar.className = 'tabbar';
-    bar.setAttribute('aria-label', 'Sections');
-    for (const [href, label, ico] of PAGES) {
-      const a = document.createElement('a');
-      a.href = href;
-      a.innerHTML = `<span class="ico" aria-hidden="true">${ico}</span>${label}`;
-      if (href === current) { a.className = 'on'; a.setAttribute('aria-current', 'page'); }
-      bar.appendChild(a);
-    }
-    document.body.appendChild(bar);
-  }
-
   /** HiDPI canvas setup; returns {ctx, w, h} in CSS pixels. */
   function canvas2d(el, cssHeight) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -112,5 +88,5 @@ const UI = (() => {
     set(k, v) { try { localStorage.setItem('sing.' + k, JSON.stringify(v)); } catch (_) {} },
   };
 
-  return { nav, canvas2d, css, tag, fmt, drawTrace, store };
+  return { canvas2d, css, tag, fmt, drawTrace, store };
 })();
