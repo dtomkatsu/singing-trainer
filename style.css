@@ -40,7 +40,7 @@ header.appbar {
   -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
   border-bottom: 1px solid rgba(38,48,66,0.65);
 }
-.brand { font-weight: 800; letter-spacing: -0.01em; font-size: 1rem; }
+.brand { font-weight: 800; letter-spacing: -0.01em; font-size: 1rem; color: var(--text); text-decoration: none; }
 .brand-ico { filter: drop-shadow(0 2px 8px rgba(76,194,255,0.45)); margin-right: 2px; }
 .micchip[hidden] { display: none; }
 .micchip {
