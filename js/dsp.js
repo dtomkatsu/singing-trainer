@@ -133,8 +133,15 @@ const Pitch = (() => {
       const { x, y } = parabolic(scratch, p);
       const f0 = sampleRate / x;
       if (f0 < FMIN || f0 > FMAX) continue;
-      cands.push({ f0, clarity: Math.min(1, Math.max(0, y)) });
+      cands.push({ f0, clarity: Math.min(1, Math.max(0, y)), mpm: false });
       if (cands.length >= maxCand) break;
+    }
+    // Flag the candidate detect() itself would have chosen — first peak above
+    // 0.9·best in lag order. The decoder anchors to it: on real sustained
+    // voices per-frame MPM is already near ceiling, and an unanchored path
+    // search re-litigates decisions it should mostly leave alone.
+    for (const c of cands) {
+      if (c.clarity >= 0.9 * best) { c.mpm = true; break; }
     }
     return { cands, rms };
   }
@@ -369,7 +376,12 @@ const Track = (() => {
     const WEIGHT   = opts.clarityWeight != null ? opts.clarityWeight : 5.0;  // emission scale
     const VTHRESH  = opts.voicedClarity != null ? opts.voicedClarity : 0.3;  // legacy detect() cutoff
     const SWITCH   = opts.switchCost    != null ? opts.switchCost    : 0.6;  // voiced <-> unvoiced
-    const SUBHARM  = opts.subharmCost   != null ? opts.subharmCost   : 3.0;  // octave-ghost penalty
+    const SUBHARM  = opts.subharmCost   != null ? opts.subharmCost   : 3.0;  // down-ghost penalty
+    const SUBQ     = opts.subharmQ      != null ? opts.subharmQ      : 0.8;  // ...fires when k >= SUBQ*j
+    const UPGHOST  = opts.upGhostCost   != null ? opts.upGhostCost   : 3.0;  // half-period-ghost penalty
+    const UPQ      = opts.upGhostQ      != null ? opts.upGhostQ      : 1.0;  // ...fires when k >= UPQ*j
+    const ANCHOR   = opts.anchorCost    != null ? opts.anchorCost    : 0.4;  // cost of leaving detect()'s pick
+    const AGATE    = opts.anchorGate    != null ? opts.anchorGate    : 0.65; // ...only when frame best >= this
     const UNVOICED = WEIGHT * (1 - VTHRESH);
     const n = lattice.length;
     const f0 = new Float32Array(n), clarity = new Float32Array(n);
@@ -380,6 +392,23 @@ const Track = (() => {
     for (let t = 0; t < n; t++) {
       const cands = lattice[t], K = cands.length;
       const cur = new Float64Array(K + 1), ptr = new Int16Array(K + 1);
+      // Anchor only on confident frames. detect()'s per-frame pick is near
+      // ceiling on clean sustained voice — that is where the decoder used to
+      // lose to the median baseline by re-litigating good decisions — but at
+      // heavy noise the per-frame pick is garbage, and anchoring to garbage
+      // cost 23 points at 0 dB SNR. Frame confidence = best clarity present.
+      let frameBest = 0;
+      for (let j = 0; j < K; j++) if (cands[j].clarity > frameBest) frameBest = cands[j].clarity;
+      const anchor = frameBest >= AGATE ? ANCHOR : 0;
+      // NOTE the up-ghost guard is deliberately NOT confidence-gated. That
+      // was tried (fire only on murky frames) and it erased the entire
+      // real-data win: on real modal voices the half-period ghost rivals the
+      // true period on HIGH-confidence frames, because H2 genuinely dominates
+      // H1. What protects clean synthetic tones — where every NSDF peak ties
+      // at ~1.0 and the guard alone read sopranos an octave down — is the
+      // anchor: on confident frames the MPM pick carries a bonus the ghost
+      // never gets, and that asymmetry breaks the tie the right way.
+      const upGhost = UPGHOST;
 
       for (let j = 0; j <= K; j++) {
         // --- emission ---
@@ -388,6 +417,7 @@ const Track = (() => {
           e = UNVOICED;
         } else {
           e = WEIGHT * (1 - cands[j].clarity);
+          if (anchor > 0 && !cands[j].mpm) e += anchor;
           // Sub-harmonic guard — MPM's "first peak above 0.9·max" rule, as a
           // cost. This is load-bearing, not defensive: the NSDF of a periodic
           // signal is ~1.0 at *every* multiple of the period, so f0, f0/2 and
@@ -398,10 +428,21 @@ const Track = (() => {
           // over time as the fundamental.
           for (let k = 0; k < K; k++) {
             if (k === j) continue;
+            // j is a DOWN-ghost of k (j at an integer fraction of k's f0).
             const ratio = cands[k].f0 / cands[j].f0;
             const m = Math.round(ratio);
             if (m >= 2 && Math.abs(ratio - m) < 0.03 * m &&
-                cands[k].clarity >= 0.8 * cands[j].clarity) { e += SUBHARM; break; }
+                cands[k].clarity >= SUBQ * cands[j].clarity) { e += SUBHARM; break; }
+            // j is an UP-ghost of k (j at an integer multiple — the
+            // half-period peak a dominant 2nd harmonic produces). Real modal
+            // voices frequently carry H2 > H1, so this direction fires on
+            // real data in a way clean synthetic tones never showed.
+            if (upGhost > 0) {
+              const inv = cands[j].f0 / cands[k].f0;
+              const mi = Math.round(inv);
+              if (mi >= 2 && Math.abs(inv - mi) < 0.03 * mi &&
+                  cands[k].clarity >= UPQ * cands[j].clarity) { e += upGhost; break; }
+            }
           }
         }
         // --- transition ---

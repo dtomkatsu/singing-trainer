@@ -279,20 +279,77 @@ most were in the *measuring apparatus* rather than the code under test:
 
 ---
 
-## 5. If the tracker needs to get better
+## 5. Real ground truth: vocadito
 
-In rough order of value per unit of effort:
+The former top item here — "every number is synthetic; get real ground truth" —
+is done. Evaluation runs against **vocadito** (Bittner et al. 2021, Zenodo
+5578807, CC-BY-4.0): 40 solo-vocal excerpts, human-verified f0 on a 5.8 ms
+grid, 92,954 voiced frames. `tests/eval-real.js` (the dataset itself is not
+vendored — fetch from Zenodo and pass the directory).
 
-1. **Get real ground truth.** Every number here is synthetic. Synthetic tones
-   have cleaner NSDF structure than real voice, which probably *understates*
-   the decoder benefit and definitely understates absolute error rates. A few
-   labelled real takes would be worth more than any further tuning.
-2. **Only then consider a neural tracker**, and only for Compare-mode imported
+**The synthetic conclusions did not survive contact with real voices.** First
+real run: median-5 96.48%, the decoder **96.17%** with *double* the octave
+errors (1.83% vs 0.90%) — the synthetic +3.9 was a real-world −0.3.
+
+Diagnosis: errors were overwhelmingly octave-**up** (1502 up vs 198 down).
+Real modal voices frequently carry **H2 stronger than H1**, so the NSDF's
+half-period peak rivals the true-period peak — and the sub-harmonic guard then
+penalized the *true fundamental* as if it were the down-ghost of the octave-up
+peak. Clean synthetic recipes (H2 = 0.5×H1) can never trigger this, which is
+why nothing synthetic ever caught it. Ablation also showed the dual window was
+innocent (it *helps* on real voices, +0.5); the decoder's cost model was the
+problem.
+
+Two additions fixed it, tuned on a 20-track train split and judged on the
+20-track held-out split:
+
+- **Up-ghost guard** (`upGhostCost: 3.0`): the mirror of the sub-harmonic
+  guard — penalize a candidate when a comparably-clear candidate sits at an
+  integer *fraction* of its frequency. Deliberately **not** confidence-gated:
+  gating it to murky frames erased the real-data win, because H2-dominant
+  ghosts live on *confident* frames.
+- **MPM anchor** (`anchorCost: 0.4`, gated at frame clarity ≥ 0.65): candidates
+  other than the one `detect()` would have picked pay a small premium, but only
+  on confident frames. This is what protects clean tones from the up-ghost
+  guard (on a clean tone every NSDF peak ties at ~1.0, and the guard alone read
+  sopranos an octave down) — and the gate is what keeps 0 dB SNR frames free of
+  anchoring-to-garbage, which had cost 23 points.
+
+| | RPA | octave | unvoiced-miss |
+|---|---|---|---|
+| median-5 (all 40 tracks) | 96.48% | 0.90% | 0.68% |
+| decoder, pre-tune | 96.17% | 1.83% | 0.70% |
+| **decoder, final** | **96.90%** | **0.52%** | 1.60% |
+| — train split | 97.45 vs median 96.74 | 0.25 | |
+| — held-out split | 96.29 vs median 96.20 | 0.82 vs 1.50 | |
+
+Synthetic suite after retune: mean 97.5% (was 98.4 pre-retune, median baseline
+94.5) — the jitter case gave back 8 points and fading 2, the price of the
+up-ghost guard firing on near-ties in synthetic jitter. All melisma wins,
+soprano cases, and the 0 dB SNR win are intact. Cost: 530 ms on a 30 s take.
+
+**Known regression, documented not chased:** unvoiced-misses doubled overall
+(0.68 → 1.60%), concentrated in one very breathy track (vocadito_34: 73.3% vs
+median's 89.1%, 16.1% unvoiced-miss). Mechanism: on breathy frames the
+sub-harmonic penalty plus low clarity makes the unvoiced state cheaper than the
+true candidate. Fixing it means another knob, and 40 tracks with this many
+knobs is already at the edge of what tuning can honestly support.
+
+## 6. If the tracker needs to get better
+
+1. **More real data before more tuning.** One dataset, 40 tracks, and a
+   handful of interacting cost constants — the held-out split is the only
+   thing standing between this and overfitting. MIR-1K (1000 clips) or
+   PTDB-TUG (laryngograph truth) would let the constants be validated rather
+   than argued.
+2. **The vocadito_34 class** (very breathy voices misread as unvoiced) is the
+   clearest remaining real-world deficiency.
+3. **Only then consider a neural tracker**, and only for Compare-mode imported
    audio — see §2 for why it cannot serve the live or report paths.
 
-(The former #1 — shorten the analysis window for melisma — shipped as the
-dual-window lattice, §3a-ii. The remaining ~5% melisma error is boundary-frame
-label ambiguity, not a windowing problem a tracker can fix.)
+(Melisma shipped as the dual-window lattice, §3a-ii. The remaining ~5% melisma
+error is boundary-frame label ambiguity, not a windowing problem a tracker can
+fix.)
 
 ## Running the tools
 

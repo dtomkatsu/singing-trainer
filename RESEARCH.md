@@ -179,9 +179,10 @@ differs from classical resonance strategy, and the drill progressions the Styles
   vocals. Offline analysis adds a **Viterbi decode** over a **dual-window candidate
   lattice** (2048 + co-centred 1024; short-window candidates admitted only when at least as clear as
   the long window's best) — pYIN's contribution over YIN (Mauch & Dixon 2014) plus a fix for
-  note-boundary smearing on fast runs — replacing the median-of-5 filter. Measured on the synthetic
-  eval set (`tests/eval-pitch.js`): +3.9 points of raw pitch accuracy overall, +20 at 0 dB SNR, +5–8
-  on 12-notes/sec melisma, at 57× realtime; the live path stays frame-independent because it has to be causal.
+  note-boundary smearing on fast runs — replacing the median-of-5 filter. Validated on real annotated
+  singing (vocadito, 40 tracks / 93k voiced frames): 96.90% raw pitch accuracy vs the median
+  baseline's 96.48%, with octave errors nearly halved (0.52% vs 0.90%); on synthetic stress cases
+  +20 points at 0 dB SNR and +5–8 on 12-notes/sec melisma, at ~57× realtime; the live path stays frame-independent because it has to be causal.
   Full write-up, including why CREPE-tiny was evaluated and rejected, in PITCH-TRACKING.md.
 - Mic requested with `echoCancellation/noiseSuppression/autoGainControl: false` (iOS honors these
   only partially — the app therefore never scores absolute loudness).
