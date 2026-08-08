@@ -1,0 +1,95 @@
+/* Singing trainer — mobile-first, dark, thumb-sized targets. */
+:root {
+  --bg: #0e1116;
+  --panel: #171c24;
+  --panel2: #1e2530;
+  --text: #e8ecf1;
+  --dim: #93a0b4;
+  --line: #2a3340;
+  --accent: #4fc3f7;
+  --good: #6fe3a5;
+  --warn: #ffd166;
+  --bad: #ff7b72;
+  --violet: #b39ddb;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+main { max-width: 720px; margin: 0 auto; padding: 12px 14px 40px; }
+h1 { font-size: 1.35rem; margin: 10px 0 4px; }
+h2 { font-size: 1.05rem; margin: 22px 0 8px; color: var(--accent); }
+h3 { font-size: 0.95rem; margin: 14px 0 6px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.dim { color: var(--dim); font-size: 0.9rem; }
+.small { font-size: 0.82rem; }
+
+header.top {
+  position: sticky; top: 0; z-index: 10; background: rgba(14,17,22,0.92);
+  backdrop-filter: blur(8px); border-bottom: 1px solid var(--line);
+  padding: env(safe-area-inset-top) 0 0;
+}
+header.top .row {
+  max-width: 720px; margin: 0 auto; display: flex; gap: 4px;
+  overflow-x: auto; padding: 8px 10px; scrollbar-width: none;
+}
+header.top .row::-webkit-scrollbar { display: none; }
+header.top a {
+  flex: 0 0 auto; padding: 7px 12px; border-radius: 999px; text-decoration: none;
+  color: var(--dim); font-size: 0.88rem; border: 1px solid transparent; white-space: nowrap;
+}
+header.top a.on { color: var(--text); background: var(--panel2); border-color: var(--line); }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px; margin: 10px 0;
+}
+.card.tight { padding: 10px 12px; }
+
+button, .btn {
+  appearance: none; border: 1px solid var(--line); background: var(--panel2);
+  color: var(--text); border-radius: 12px; padding: 12px 16px; font-size: 1rem;
+  cursor: pointer; text-decoration: none; display: inline-block; text-align: center;
+}
+button.primary { background: var(--accent); border-color: var(--accent); color: #06263a; font-weight: 600; }
+button.rec { background: var(--bad); border-color: var(--bad); color: #33110e; font-weight: 700; }
+button.big { width: 100%; padding: 16px; font-size: 1.1rem; }
+button:disabled { opacity: 0.45; }
+.btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.btnrow > * { flex: 1 1 auto; }
+
+canvas { width: 100%; display: block; border-radius: 10px; background: #0a0d12; touch-action: none; }
+
+.bignote { font-size: 3.2rem; font-weight: 700; text-align: center; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bigsub { text-align: center; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+.meter { height: 10px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
+.meter > div { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.15s; }
+
+table.metrics { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+table.metrics td { padding: 7px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.metrics td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+.tag.good { background: rgba(111,227,165,0.15); color: var(--good); }
+.tag.warn { background: rgba(255,209,102,0.15); color: var(--warn); }
+.tag.bad  { background: rgba(255,123,114,0.15); color: var(--bad); }
+
+.diag { border-left: 3px solid var(--warn); padding: 8px 12px; margin: 10px 0; background: var(--panel2); border-radius: 0 10px 10px 0; }
+.diag.good { border-color: var(--good); }
+.diag b { display: block; margin-bottom: 2px; }
+
+.pill-select { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill-select button { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; font-size: 0.9rem; }
+.pill-select button.on { background: var(--accent); color: #06263a; border-color: var(--accent); font-weight: 600; }
+
+.countdown { font-size: 2.4rem; font-weight: 700; text-align: center; }
+ul { padding-left: 20px; margin: 6px 0; }
+li { margin: 4px 0; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 420px) { .grid2 { grid-template-columns: 1fr; } }
+.score { font-size: 2.6rem; font-weight: 800; text-align: center; }
+.footer-note { margin-top: 30px; color: var(--dim); font-size: 0.8rem; }

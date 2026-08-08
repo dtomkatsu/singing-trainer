@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Tuner — Singing Trainer</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<main>
+  <h1>Live pitch &amp; resonance</h1>
+  <p class="dim">Sing or hum. The trace shows the last 8 seconds; the spectrum highlights the 2.4–3.4 kHz “ring” zone where a resonant voice carries.</p>
+
+  <div class="card" id="startCard">
+    <button class="primary big" id="startBtn">Enable microphone</button>
+    <p class="small dim" style="margin-top:8px">Audio never leaves your phone — analysis runs entirely in the browser.</p>
+  </div>
+
+  <div id="live" style="display:none">
+    <div class="card tight">
+      <div class="bignote" id="note">—</div>
+      <div class="bigsub" id="sub">sing a note</div>
+      <div style="margin-top:10px"><canvas id="needle" height="46"></canvas></div>
+    </div>
+    <div class="card tight">
+      <div class="dim small">Pitch trace</div>
+      <canvas id="trace"></canvas>
+    </div>
+    <div class="card tight">
+      <div class="dim small">Spectrum — <span style="color:var(--violet)">purple band = singer’s formant region (ring)</span></div>
+      <canvas id="spec"></canvas>
+      <div class="small dim" style="margin-top:6px">Ring meter <span id="ringVal"></span></div>
+      <div class="meter"><div id="ringBar" style="width:0%; background:var(--violet)"></div></div>
+    </div>
+  </div>
+</main>
+<script src="js/dsp.js?v=1"></script>
+<script src="js/mic.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+<script>
+UI.nav('tuner.html');
+
+const startBtn = document.getElementById('startBtn');
+const noteEl = document.getElementById('note');
+const subEl = document.getElementById('sub');
+
+let traceC, needleC, specC;
+const history = [];           // {t, v: midi*100}
+const specBytes = new Uint8Array(1024);
+let smoothedCents = 0, haveNote = false;
+
+startBtn.addEventListener('click', async () => {
+  try {
+    await Mic.start();
+  } catch (e) {
+    subEl.textContent = '';
+    startBtn.textContent = 'Microphone blocked — check Settings › Safari › Microphone';
+    return;
+  }
+  document.getElementById('startCard').style.display = 'none';
+  document.getElementById('live').style.display = '';
+  traceC = UI.canvas2d(document.getElementById('trace'), 180);
+  needleC = UI.canvas2d(document.getElementById('needle'), 46);
+  specC = UI.canvas2d(document.getElementById('spec'), 120);
+  requestAnimationFrame(loop);
+});
+
+function drawNeedle(cents) {
+  const { ctx, w, h } = needleC;
+  ctx.clearRect(0, 0, w, h);
+  // scale: ±50 cents
+  ctx.strokeStyle = 'rgba(147,160,180,0.3)';
+  for (const c of [-50, -25, 0, 25, 50]) {
+    const x = w / 2 + (c / 50) * (w / 2 - 10);
+    ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, h - 14); ctx.stroke();
+    ctx.fillStyle = 'rgba(147,160,180,0.6)'; ctx.font = '9px sans-serif';
+    ctx.textAlign = 'center'; ctx.fillText(c === 0 ? '0' : (c > 0 ? '+' + c : c), x, h - 3);
+  }
+  if (!haveNote) return;
+  const x = w / 2 + (Math.max(-50, Math.min(50, cents)) / 50) * (w / 2 - 10);
+  const inTune = Math.abs(cents) <= 10;
+  const near = Math.abs(cents) <= 25;
+  ctx.fillStyle = inTune ? UI.css('--good') : near ? UI.css('--warn') : UI.css('--bad');
+  ctx.beginPath(); ctx.roundRect(x - 3, 4, 6, h - 18, 3); ctx.fill();
+}
+
+function drawSpec(binHz) {
+  const { ctx, w, h } = specC;
+  ctx.clearRect(0, 0, w, h);
+  const fMax = 5000;
+  const nBins = Math.min(specBytes.length, Math.floor(fMax / binHz));
+  // ring band shading
+  const x1 = (2400 / fMax) * w, x2 = (3400 / fMax) * w;
+  ctx.fillStyle = 'rgba(179,157,219,0.13)';
+  ctx.fillRect(x1, 0, x2 - x1, h);
+  ctx.fillStyle = UI.css('--accent');
+  const bw = w / nBins;
+  for (let i = 0; i < nBins; i++) {
+    const v = specBytes[i] / 255;
+    ctx.fillRect(i * bw, h - v * h, Math.max(1, bw - 0.5), v * h);
+  }
+  ctx.fillStyle = 'rgba(147,160,180,0.7)'; ctx.font = '9px sans-serif'; ctx.textAlign = 'center';
+  for (const f of [1000, 2000, 3000, 4000]) ctx.fillText((f / 1000) + 'k', (f / fMax) * w, h - 2);
+
+  // ring meter: energy in 2.4-3.4k vs 0-2k (byte-domain approximation)
+  let ring = 0, low = 0;
+  for (let i = 0; i < nBins; i++) {
+    const f = i * binHz, e = (specBytes[i] / 255) ** 2;
+    if (f >= 2400 && f <= 3400) ring += e;
+    else if (f >= 100 && f <= 2000) low += e;
+  }
+  const ratio = low > 0.001 ? Math.min(1, ring / low * 2.4) : 0;
+  document.getElementById('ringBar').style.width = (ratio * 100).toFixed(0) + '%';
+  document.getElementById('ringVal').textContent = ratio > 0.55 ? '— ringing!' : '';
+}
+
+function loop() {
+  const now = performance.now() / 1000;
+  const r = Mic.livePitch();
+  if (r && r.f0 > 0 && r.clarity > 0.5) {
+    const midiCents = Notes.hzToMidi(r.f0) * 100;
+    history.push({ t: now, v: midiCents });
+    const n = Notes.nearest(r.f0);
+    smoothedCents = smoothedCents * 0.6 + n.cents * 0.4;
+    haveNote = true;
+    noteEl.textContent = n.name;
+    noteEl.style.color = Math.abs(smoothedCents) <= 10 ? UI.css('--good') :
+                         Math.abs(smoothedCents) <= 25 ? UI.css('--warn') : UI.css('--bad');
+    subEl.textContent = r.f0.toFixed(1) + ' Hz · ' + UI.fmt.cents(smoothedCents);
+  } else {
+    history.push({ t: now, v: NaN });
+    haveNote = false;
+    noteEl.style.color = '';
+  }
+  while (history.length && history[0].t < now - 8) history.shift();
+
+  UI.drawTrace(traceC.ctx, traceC.w, traceC.h, history, { t0: now - 8, t1: now });
+  drawNeedle(smoothedCents);
+  const binHz = Mic.liveSpectrum(specBytes);
+  if (binHz) drawSpec(binHz);
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Singing Trainer</title>
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<main>
+  <h1>Singing Trainer</h1>
+  <p class="dim">Evidence-based pitch and tone training that runs entirely in your phone’s browser. Nothing is uploaded — the microphone feeds a signal analyzer on the page, and recordings never leave the device.</p>
+
+  <div class="grid2">
+    <a class="card" href="report.html" style="text-decoration:none;color:inherit">
+      <h3 style="margin:0">🩺 Voice report</h3>
+      <p class="small dim">Sing one note; get measured on steadiness, breathiness, vibrato, and resonance — and told exactly what to work on.</p>
+    </a>
+    <a class="card" href="tuner.html" style="text-decoration:none;color:inherit">
+      <h3 style="margin:0">🎯 Live tuner</h3>
+      <p class="small dim">Real-time pitch trace and a spectrum view with the “ring” band highlighted.</p>
+    </a>
+    <a class="card" href="exercises.html" style="text-decoration:none;color:inherit">
+      <h3 style="margin:0">🎹 Pitch exercises</h3>
+      <p class="small dim">Note matching, blind matching, sirens, and intervals — sized to your own range.</p>
+    </a>
+    <a class="card" href="compare.html" style="text-decoration:none;color:inherit">
+      <h3 style="margin:0">🆚 Compare</h3>
+      <p class="small dim">Sing against a reference melody and see both contours aligned, with a transposition-tolerant score.</p>
+    </a>
+    <a class="card" href="warmup.html" style="text-decoration:none;color:inherit">
+      <h3 style="margin:0">🥤 Warm-up</h3>
+      <p class="small dim">Guided straw-phonation routine with a measurable before/after.</p>
+    </a>
+  </div>
+
+  <h2>The daily 15 minutes</h2>
+  <div class="card">
+    <ul class="small">
+      <li><b>1.</b> <a href="warmup.html">Warm-up</a> — straw + lip trills (5 min). Best-evidenced tone exercise there is.</li>
+      <li><b>2.</b> <a href="exercises.html">Pitch work</a> — 10 matches, then 5 <b>blind</b> matches (5 min). The blind reps are the ones that stick.</li>
+      <li><b>3.</b> <a href="compare.html">Repertoire</a> — one phrase of a real song against its reference, three takes, <i>listen to your own recording</i> between takes (5 min).</li>
+      <li><b>Weekly:</b> one <a href="report.html">voice report</a> to watch the numbers move. Daily shorts beat weekend marathons (spacing effect, d≈0.54).</li>
+    </ul>
+  </div>
+
+  <h2>Why this design — the science in one screen</h2>
+  <div class="card small">
+    <ul>
+      <li><b>Seeing your pitch in real time works.</b> Controlled studies from the SINGAD classroom experiments (Welch 1989) through Wilson et al. 2008 and Berglin et al. 2022 show visual pitch feedback beats instruction alone — in Berglin’s adult study, <i>only</i> the visual-feedback group improved significantly.</li>
+      <li><b>…but you must also practice without the screen.</b> Motor-learning research (the “guidance hypothesis”) shows constant feedback inflates performance while it’s on and fades when removed. Hence the <b>blind match</b> mode: sing first, see the trace after.</li>
+      <li><b>“Tone-deafness” is almost never the problem.</b> Only ~1.5–4% of people have a true perceptual deficit; most off-pitch singing is a voice-control mapping issue (Hutchins &amp; Peretz 2012) — which trains quickly, often within 4–8 short sessions.</li>
+      <li><b>Match voices, in your range.</b> People match pitch better against voice-like sounds in their own comfortable range than piano notes in the wrong octave (Hutchins et al. 2014; Pfordresher &amp; Greenspon 2025). The exercises calibrate to your range and use a harmonic-rich tone.</li>
+      <li><b>Resonance is measurable.</b> Trained voices carry 10–20 dB more energy near 2.4–3.4 kHz — the “singer’s formant” (Sundberg 1974). The report’s ring metric (singing power ratio, Omori 1996) tracks exactly this, and it correlates with expert quality ratings.</li>
+      <li><b>Straw phonation is the tone exercise with the best evidence.</b> It measurably reshapes the vocal tract toward the ringing configuration and lowers phonation effort (Titze 2006; Guzman 2013 CT study; 2021 systematic review).</li>
+      <li><b>Record yourself and listen.</b> You literally cannot hear your own voice accurately while singing (bone conduction); playback closes the gap and improves self-assessment (Silveira &amp; Gavin 2016).</li>
+    </ul>
+    <p class="dim">Full citations and thresholds: <a href="https://github.com/dtomkatsu/Learning-Bahasa-Indonesian/blob/main/singing/RESEARCH.md">RESEARCH.md</a>.</p>
+  </div>
+
+  <h2>Phone setup for good measurements</h2>
+  <div class="card small dim">
+    <ul>
+      <li>Quiet room, phone ~30 cm from your mouth (about a forearm).</li>
+      <li><b>No Bluetooth headsets</b> — iOS drops the mic to phone-call quality. Built-in mic or wired headphones only.</li>
+      <li>iOS applies some automatic gain no matter what, so the app measures pitch and spectrum <i>shape</i> (which survive it), not absolute loudness.</li>
+      <li>If audio stops after a call or screen lock, tap anywhere — the page resumes the audio engine on the next touch.</li>
+    </ul>
+  </div>
+
+  <p class="footer-note">Part of the <a href="../index.html">Learning tools</a> collection · static pages, no accounts, no uploads.</p>
+</main>
+<script src="js/ui.js?v=1"></script>
+<script>UI.nav('index.html');</script>
+</body>
+</html>
