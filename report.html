@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e1116">
+<meta name="theme-color" content="#0b0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='0.9em'%20font-size='90'%3E%F0%9F%8E%A4%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Voice Report — Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <main>
@@ -17,7 +20,7 @@
   </div>
 
   <div class="card" id="recCard" style="display:none">
-    <div class="countdown" id="count">&nbsp;</div>
+    <div class="countdown" id="count" role="status">&nbsp;</div>
     <canvas id="liveTrace" style="margin:8px 0"></canvas>
     <button class="rec big" id="recBtn">● Record 6-second “ahh”</button>
   </div>
@@ -34,7 +37,7 @@
     <div class="card">
       <h2 style="margin-top:0">Measurements</h2>
       <table class="metrics" id="mtable"></table>
-      <p class="small dim" style="margin-top:8px">Phone mics and iOS gain control make absolute levels unreliable, so everything here is computed from pitch and spectrum shape, which survive that. Thresholds and the science behind each number: <a href="RESEARCH.md">RESEARCH.md</a>.</p>
+      <p class="small dim" style="margin-top:8px">Phone mics and iOS gain control make absolute levels unreliable, so everything here is computed from pitch and spectrum shape, which survive that. Thresholds and the science behind each number: <a href="https://github.com/dtomkatsu/Learning-Bahasa-Indonesian/blob/main/singing/RESEARCH.md">RESEARCH.md</a>.</p>
     </div>
     <div class="card">
       <h2 style="margin-top:0">What to work on</h2>
@@ -46,9 +49,9 @@
     </div>
   </div>
 </main>
-<script src="js/dsp.js?v=1"></script>
-<script src="js/mic.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
+<script src="js/dsp.js?v=2"></script>
+<script src="js/mic.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
 <script>
 UI.nav('report.html');
 
@@ -94,9 +97,11 @@ function liveLoop() {
 $('recBtn').addEventListener('click', async () => {
   await Mic.resume();
   $('recBtn').disabled = true;
+  $('results').style.display = 'none';
   // lead-in countdown 3..1 so the onset isn't clipped
   for (let c = 3; c >= 1; c--) { $('count').textContent = c; await sleep(700); }
   $('count').textContent = 'sing…';
+  $('recBtn').classList.add('recording');
   Mic.beginRecording();
   const SECS = 6;
   const t0 = performance.now();
@@ -105,9 +110,12 @@ $('recBtn').addEventListener('click', async () => {
     await sleep(120);
   }
   take = Mic.endRecording();
+  $('recBtn').classList.remove('recording');
+  $('count').textContent = 'analyzing…';
+  await sleep(50);                                   // let the label paint
+  analyzeTake();
   $('count').textContent = ' ';
   $('recBtn').disabled = false;
-  analyzeTake();
 });
 
 function analyzeTake() {
@@ -116,6 +124,9 @@ function analyzeTake() {
   const [s, e] = Metrics.longestVoicedRun(track);
   const durS = (e - s) * track.hopSec;
   $('results').style.display = '';
+  $('results').classList.remove('reveal'); void $('results').offsetWidth;
+  $('results').classList.add('reveal');
+  setTimeout(() => $('results').scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
 
   const tc = UI.canvas2d($('takeTrace'), 160);
   const pts = [];

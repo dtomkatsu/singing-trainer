@@ -3,31 +3,27 @@
 
 const UI = (() => {
   const PAGES = [
-    ['index.html', 'Home'],
-    ['tuner.html', 'Tuner'],
-    ['report.html', 'Voice Report'],
-    ['exercises.html', 'Exercises'],
-    ['compare.html', 'Compare'],
-    ['warmup.html', 'Warm-up'],
-    ['styles.html', 'Styles'],
+    ['index.html', 'Home', '🏠'],
+    ['tuner.html', 'Tuner', '🎯'],
+    ['report.html', 'Report', '🩺'],
+    ['exercises.html', 'Drills', '🎹'],
+    ['compare.html', 'Compare', '🎼'],
+    ['warmup.html', 'Warm-up', '🥤'],
+    ['styles.html', 'Styles', '🎤'],
   ];
 
   function nav(current) {
-    const h = document.createElement('header');
-    h.className = 'top';
-    const row = document.createElement('div');
-    row.className = 'row';
-    for (const [href, label] of PAGES) {
+    const bar = document.createElement('nav');
+    bar.className = 'tabbar';
+    bar.setAttribute('aria-label', 'Sections');
+    for (const [href, label, ico] of PAGES) {
       const a = document.createElement('a');
-      a.href = href; a.textContent = label;
-      if (href === current) a.className = 'on';
-      row.appendChild(a);
+      a.href = href;
+      a.innerHTML = `<span class="ico" aria-hidden="true">${ico}</span>${label}`;
+      if (href === current) { a.className = 'on'; a.setAttribute('aria-current', 'page'); }
+      bar.appendChild(a);
     }
-    h.appendChild(row);
-    document.body.prepend(h);
-    // keep active pill in view
-    const on = row.querySelector('.on');
-    if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+    document.body.appendChild(bar);
   }
 
   /** HiDPI canvas setup; returns {ctx, w, h} in CSS pixels. */
@@ -97,7 +93,7 @@ const UI = (() => {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
       ctx.setLineDash([]);
     }
-    ctx.lineWidth = 2;
+    ctx.lineWidth = opts.lineWidth || 2;
     ctx.strokeStyle = opts.color || css('--accent') || '#4fc3f7';
     let pen = false;
     ctx.beginPath();

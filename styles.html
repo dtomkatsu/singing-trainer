@@ -3,9 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0e1116">
+<meta name="theme-color" content="#0b0e14">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='0.9em'%20font-size='90'%3E%F0%9F%8E%A4%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Styles — Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=1">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
 <main>
@@ -30,7 +33,7 @@
       <div style="margin:10px 0 4px" class="small dim">Speed: <span id="npsVal"></span> notes/sec (start at 2–3, earn your way up)</div>
       <div class="pill-select" id="npsPick"></div>
       <div class="btnrow"><button class="primary" id="runGo">▶ Hear it, then sing it</button></div>
-      <div class="bigsub" id="runStatus"></div>
+      <div class="bigsub" id="runStatus" role="status"></div>
       <canvas id="runCanvas" style="margin-top:6px"></canvas>
       <div id="runNotes" style="margin-top:8px"></div>
     </div>
@@ -39,7 +42,7 @@
       <h2 style="margin-top:0">🛝 Scoop control</h2>
       <p class="small dim">An intentional R&amp;B scoop is ~100–300¢ deep, takes 80–250 ms, and <b>lands stable</b>. A slide that never settles is just flat singing. You’ll hear a target note — start clearly below it, slide in, then hold it dead straight.</p>
       <div class="btnrow"><button class="primary" id="scoopGo">▶ Try a scoop</button></div>
-      <div class="bigsub" id="scoopStatus"></div>
+      <div class="bigsub" id="scoopStatus" role="status"></div>
       <canvas id="scoopCanvas" style="margin-top:6px"></canvas>
       <div id="scoopVerdict"></div>
     </div>
@@ -48,16 +51,16 @@
       <h2 style="margin-top:0">🌊 Delayed vibrato</h2>
       <p class="small dim">Classical vibrato spins from the first instant; R&amp;B holds the note <b>straight</b> and lets vibrato bloom in the final stretch (&gt;40% in). Hold one note ~4 s: straight first, then release into vibrato.</p>
       <div class="btnrow"><button class="primary" id="vibGo">▶ Hold a note</button></div>
-      <div class="bigsub" id="vibStatus"></div>
+      <div class="bigsub" id="vibStatus" role="status"></div>
       <canvas id="vibCanvas" style="margin-top:6px"></canvas>
       <div id="vibVerdict"></div>
     </div>
 
   </div>
 </main>
-<script src="js/dsp.js?v=1"></script>
-<script src="js/mic.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
+<script src="js/dsp.js?v=2"></script>
+<script src="js/mic.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
 <script>
 UI.nav('styles.html');
 const $ = (id) => document.getElementById(id);
@@ -217,6 +220,7 @@ $('runGo').addEventListener('click', async () => {
     $('runStatus').textContent = 'analyzing…';
     await sleep(30);
     scoreRun(take, tonic, offsets, nps);
+    $('runCanvas').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } finally { busy = false; $('runGo').disabled = false; }
 });
 
