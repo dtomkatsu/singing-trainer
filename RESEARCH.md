@@ -76,8 +76,12 @@ audiation pause.
   Steinhauer 2007, *J. Voice*; MRI confirmation 2024) — the fastest trainable route to ring. **[moderate]**
 - Breathiness metrics: **HNR** (harmonics-to-noise ratio, Boersma 1993: `10·log10(r/(1−r))` from the
   normalized autocorrelation peak) — >20 dB clear, 12–20 some noise, <12 distinctly breathy.
-  **CPP/CPPS** is the more robust clinical measure but is algorithm-dependent; the app uses the
-  autocorrelation HNR estimate that falls out of its pitch detector, labeled as an estimate.
+  **CPP/CPPS** is the more robust clinical measure. The app now computes both: CPPS is the primary
+  breathiness number and HNR is shown as a second opinion. The reason is structural — HNR is derived
+  from the pitch detector's own NSDF peak, so the measurement shares a failure mode with the thing it
+  measures, while CPPS is read off the cepstrum without ever consulting f0. CPPS absolute values are
+  algorithm-dependent, so the bands in §10 are calibrated against this implementation rather than
+  lifted from a clinical paper. See PITCH-TRACKING.md.
 
 **In the app:** the tuner's purple band and ring meter, and the report's SPR/singer's-formant rows,
 are direct implementations of this literature, with Omori's bands as thresholds.
@@ -150,6 +154,7 @@ transposition by median difference, snaps it to semitones, doesn't penalize key 
 | Pitch drift (sustained) | SD of 250 ms-smoothed cents contour | ≤15 ¢ | ≤30 ¢ | >30 ¢ | poor-pitch literature; Praat practice |
 | F0 perturbation | frame-to-frame Δf0 (jitter *proxy*) | ≤1.0% | ≤2.5% | >2.5% | Praat local jitter norm 1.04% (true jitter needs cycle marks) |
 | Amplitude flutter | frame-to-frame ΔRMS (shimmer proxy) | ≤6% | ≤12% | >12% | Praat shimmer norm 3.8% is for *speech*; singing + vibrato AM runs higher |
+| Breathiness (CPPS) | cepstral peak prominence over a regression baseline | ≥11 dB | ≥8 dB | <8 dB | Hillenbrand & Houde 1996; bands calibrated on *this* implementation |
 | Clarity (HNR est.) | 10·log10(r/(1−r)), r = NSDF peak | ≥18 dB | ≥12 dB | <12 dB | Boersma 1993; clinical bands |
 | Ring (SPR) | peak dB 2–4 kHz − peak dB 0–2 kHz | ≥ −15 dB | ≥ −25 dB | < −25 dB | Omori 1996; Watts 2006 |
 | Singer's-formant energy | dB share of 2.4–3.4 kHz vs 50 Hz–5 kHz | ≥ −16 dB | ≥ −22 dB | < −22 dB | Sundberg band; app-calibrated |
@@ -169,9 +174,13 @@ differs from classical resonance strategy, and the drill progressions the Styles
 ## 12. iOS/browser engineering notes (why the app is built this way)
 
 - **AnalyserNode polling** at display rate drives the live views; a hand-rolled **McLeod Pitch
-  Method** (NSDF + parabolic interpolation, 2048-sample window ≥ 2 periods of 60 Hz) does pitch, with
-  median-of-5 smoothing against octave blips. MPM/YIN-class detectors are the standard choice for
-  monophonic voice; sub-10 ¢ accurate on clean vocals.
+  Method** (NSDF + parabolic interpolation, 2048-sample window ≥ 2 periods of 60 Hz) does pitch.
+  MPM/YIN-class detectors are the standard choice for monophonic voice; sub-10 ¢ accurate on clean
+  vocals. Offline analysis adds a **Viterbi decode** over the per-frame candidate lattice — pYIN's
+  contribution over YIN (Mauch & Dixon 2014) — replacing the median-of-5 filter. Measured at +0.7
+  points of raw pitch accuracy on the synthetic eval set (`tests/eval-pitch.js`), concentrated in the
+  jittery and low-SNR cases; the live path stays frame-independent because it has to be causal.
+  Full write-up, including why CREPE-tiny was evaluated and rejected, in PITCH-TRACKING.md.
 - Mic requested with `echoCancellation/noiseSuppression/autoGainControl: false` (iOS honors these
   only partially — the app therefore never scores absolute loudness).
 - AudioContext is created after mic grant inside the user gesture; the WebKit-only `"interrupted"`

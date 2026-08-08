@@ -109,6 +109,52 @@ console.log('Track / Metrics.vibrato');
   ok(hp - hn > 5, `noise lowers HNR (${hp.toFixed(1)} vs ${hn.toFixed(1)} dB)`);
 }
 
+/* ---------- CPPS ---------- */
+console.log('Metrics.cpps');
+{
+  const H = [1, 0.5, 0.33, 0.25, 0.18, 0.12];
+  const clean = harmonicTone(196, 3, H);
+  const breathy = harmonicTone(196, 3, H);
+  for (let i = 0; i < breathy.length; i++) breathy[i] = 0.75 * breathy[i] + 0.05 * (Math.random() * 2 - 1);
+  const tc = Track.analyze(clean, SR), tb = Track.analyze(breathy, SR);
+  const [cs, ce] = Metrics.longestVoicedRun(tc), [bs, be] = Metrics.longestVoicedRun(tb);
+  const cc = Metrics.cpps(clean, SR, tc, cs, ce), cb = Metrics.cpps(breathy, SR, tb, bs, be);
+  ok(cc && cb && cc.cppsDb - cb.cppsDb > 1.5,
+    `CPPS separates clean from breathy (${cc && cc.cppsDb.toFixed(1)} vs ${cb && cb.cppsDb.toFixed(1)} dB)`);
+  // The cepstral peak is an f0 estimate reached without ever consulting the
+  // pitch tracker. If it agrees, the measure really is independent of it —
+  // which is the whole reason CPPS is here alongside hnr().
+  ok(cc && Math.abs(1200 * Math.log2(cc.quefrencyHz / 196)) < 60,
+    `CPPS quefrency recovers f0 independently (${cc && cc.quefrencyHz.toFixed(1)} Hz vs 196)`);
+}
+
+/* ---------- Viterbi decoding ---------- */
+console.log('Track viterbi decode');
+{
+  // Regression guard. The NSDF is ~1.0 at *every* multiple of the period, so
+  // f0, f0/2 and f0/3 arrive with identical clarity; a decoder that ranks on
+  // clarity alone locks onto a sub-harmonic even on a perfectly clean tone.
+  // This caught exactly that (220 Hz was read as 73.3 Hz).
+  for (const hz of [110, 196, 330]) {
+    const t = Track.analyze(harmonicTone(hz, 1.5, [1, 0.5, 0.33, 0.25]), SR);
+    const [s, e] = Metrics.longestVoicedRun(t);
+    const vals = Array.from(t.f0.subarray(s, e)).filter((v) => v > 0).sort((a, b) => a - b);
+    const med = vals[vals.length >> 1];
+    ok(vals.length && Math.abs(1200 * Math.log2(med / hz)) < 50,
+      `holds the fundamental at ${hz} Hz (got ${med ? med.toFixed(1) : 'none'})`);
+  }
+  // Real melodic leaps must survive: over-smoothing would score well on
+  // sustained notes and quietly ruin the interval drills.
+  const leap = new Float32Array(SR * 2);
+  leap.set(harmonicTone(220, 1, [1, 0.5, 0.33]), 0);
+  leap.set(harmonicTone(440, 1, [1, 0.5, 0.33]), SR);
+  const tl = Track.analyze(leap, SR);
+  const early = tl.f0[Math.floor(0.5 / tl.hopSec)], late = tl.f0[Math.floor(1.5 / tl.hopSec)];
+  ok(early > 0 && late > 0 &&
+     Math.abs(1200 * Math.log2(early / 220)) < 50 && Math.abs(1200 * Math.log2(late / 440)) < 50,
+    `octave leap preserved (${early.toFixed(0)} -> ${late.toFixed(0)} Hz)`);
+}
+
 /* ---------- Resonance ---------- */
 console.log('Metrics.resonance');
 {

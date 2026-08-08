@@ -51,6 +51,22 @@ const Pitch = (() => {
 
   const scratch = new Float32Array(4096);
 
+  /** Local maxima of the NSDF (lag indices), plus the tallest value found. */
+  function peaksOf(minLag, maxLag) {
+    let i = minLag;
+    while (i < maxLag && scratch[i] > 0) i++;         // skip the lag-0 lobe
+    const peaks = [];
+    let best = 0;
+    while (i < maxLag - 1) {
+      if (scratch[i] > scratch[i - 1] && scratch[i] >= scratch[i + 1]) {
+        peaks.push(i);
+        if (scratch[i] > best) best = scratch[i];
+      }
+      i++;
+    }
+    return { peaks, best };
+  }
+
   /**
    * Detect pitch in a mono frame.
    * @returns {f0, clarity, rms} — f0 = -1 when unvoiced/silent.
@@ -64,19 +80,7 @@ const Pitch = (() => {
 
     const maxLag = nsdf(buf, sampleRate, scratch);
     const minLag = Math.max(2, Math.floor(sampleRate / FMAX));
-
-    // Collect all local maxima after the first negative-going zero crossing.
-    let i = minLag;
-    while (i < maxLag && scratch[i] > 0) i++;         // skip the lag-0 lobe
-    const peaks = [];
-    let best = 0;
-    while (i < maxLag - 1) {
-      if (scratch[i] > scratch[i - 1] && scratch[i] >= scratch[i + 1]) {
-        peaks.push(i);
-        if (scratch[i] > best) best = scratch[i];
-      }
-      i++;
-    }
+    const { peaks, best } = peaksOf(minLag, maxLag);
     if (!peaks.length || best < 0.3) return { f0: -1, clarity: best, rms };
 
     // First peak above k*highest — the MPM rule that kills octave errors.
@@ -90,7 +94,37 @@ const Pitch = (() => {
     return { f0, clarity: Math.min(1, y), rms };
   }
 
-  return { detect, FMIN, FMAX };
+  /**
+   * Same NSDF pass as detect(), but returns the top `maxCand` peaks instead
+   * of committing to one. This is the information MPM's "first peak above
+   * 0.9·max" rule throws away, and it is exactly what resolves octave
+   * ambiguity once a decoder is allowed to look across frames — see
+   * Track.viterbi.
+   * @returns {cands: [{f0, clarity}] ranked by clarity, rms}
+   */
+  function candidates(buf, sampleRate, maxCand = 5) {
+    const n = buf.length;
+    let rms = 0;
+    for (let i = 0; i < n; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / n);
+    if (rms < 0.005) return { cands: [], rms };
+
+    const maxLag = nsdf(buf, sampleRate, scratch);
+    const minLag = Math.max(2, Math.floor(sampleRate / FMAX));
+    const { peaks } = peaksOf(minLag, maxLag);
+
+    const cands = [];
+    for (const p of peaks) {
+      const { x, y } = parabolic(scratch, p);
+      const f0 = sampleRate / x;
+      if (f0 < FMIN || f0 > FMAX) continue;
+      cands.push({ f0, clarity: Math.min(1, Math.max(0, y)) });
+    }
+    cands.sort((a, b) => b.clarity - a.clarity);
+    return { cands: cands.slice(0, maxCand), rms };
+  }
+
+  return { detect, candidates, FMIN, FMAX };
 })();
 
 /* ------------------------------------------------------------------ *
@@ -210,31 +244,151 @@ const Track = (() => {
   /**
    * @param {Float32Array} pcm  mono samples
    * @param {number} sampleRate
-   * @param {object} [opts] window (2048), hop (512)
+   * @param {object} [opts] window (2048), hop (512), viterbi (true)
    * @returns {times, f0, cents (vs A440 midi grid, NaN unvoiced), clarity, rms, hopSec}
    */
   function analyze(pcm, sampleRate, opts = {}) {
     const win = opts.window || 2048;
     const hop = opts.hop || 512;
+    const useViterbi = opts.viterbi !== false;
     const nFrames = Math.max(0, Math.floor((pcm.length - win) / hop) + 1);
     const times = new Float32Array(nFrames);
-    const f0 = new Float32Array(nFrames);
-    const clarity = new Float32Array(nFrames);
     const rms = new Float32Array(nFrames);
     const frame = new Float32Array(win);
-    for (let k = 0; k < nFrames; k++) {
-      frame.set(pcm.subarray(k * hop, k * hop + win));
-      const r = Pitch.detect(frame, sampleRate);
-      times[k] = (k * hop + win / 2) / sampleRate;
-      f0[k] = r.f0; clarity[k] = r.clarity; rms[k] = r.rms;
+
+    let f0, clarity;
+    if (useViterbi) {
+      const lattice = new Array(nFrames);
+      for (let k = 0; k < nFrames; k++) {
+        frame.set(pcm.subarray(k * hop, k * hop + win));
+        const r = Pitch.candidates(frame, sampleRate);
+        times[k] = (k * hop + win / 2) / sampleRate;
+        rms[k] = r.rms;
+        lattice[k] = r.cands;
+      }
+      const decoded = viterbi(lattice, opts);
+      f0 = decoded.f0; clarity = decoded.clarity;
+    } else {
+      f0 = new Float32Array(nFrames);
+      clarity = new Float32Array(nFrames);
+      for (let k = 0; k < nFrames; k++) {
+        frame.set(pcm.subarray(k * hop, k * hop + win));
+        const r = Pitch.detect(frame, sampleRate);
+        times[k] = (k * hop + win / 2) / sampleRate;
+        f0[k] = r.f0; clarity[k] = r.clarity; rms[k] = r.rms;
+      }
+      f0 = medianSmooth(f0, 5);   // legacy path: blip rejection without a decoder
     }
-    // Median-of-5 filter on voiced runs to kill single-frame octave blips.
-    const f0s = medianSmooth(f0, 5);
+
     const cents = new Float32Array(nFrames);
     for (let k = 0; k < nFrames; k++) {
-      cents[k] = f0s[k] > 0 ? 100 * (Notes.hzToMidi(f0s[k])) : NaN;
+      cents[k] = f0[k] > 0 ? 100 * (Notes.hzToMidi(f0[k])) : NaN;
     }
-    return { times, f0: f0s, cents, clarity, rms, hopSec: hop / sampleRate };
+    return { times, f0, cents, clarity, rms, hopSec: hop / sampleRate };
+  }
+
+  /**
+   * Viterbi-decode a per-frame candidate lattice into one continuous track.
+   *
+   * This is what pYIN adds on top of YIN (Mauch & Dixon 2014), and it is the
+   * highest-value upgrade available to an autocorrelation tracker: per-frame
+   * accuracy on a clean sustained vowel is already near ceiling, but
+   * *cross-frame* decisions — octave jumps, voiced/unvoiced boundaries — are
+   * where a frame-independent detector fails. The median filter this replaces
+   * could only reject a blip shorter than half its window, and was blind to
+   * how confident each frame actually was.
+   *
+   * States per frame: the K pitch candidates, plus one unvoiced state.
+   *   emission   = WEIGHT · (1 − clarity), so confident frames are cheap
+   *   transition = LAMBDA · semitone distance, capped at an octave
+   *
+   * Emission is linear in aperiodicity rather than −log(clarity) on purpose.
+   * The log form is the textbook likelihood, but it diverges as clarity → 0
+   * while staying-unvoiced costs nothing per frame, so on a noisy take the
+   * cheapest global path is to declare the whole thing unvoiced. Measured:
+   * that cost 11 points of raw pitch accuracy at 0 dB SNR versus the median
+   * filter it replaced. Bounding emission to [0, WEIGHT] and pricing the
+   * unvoiced state at the same clarity threshold the legacy detector used
+   * (0.3) keeps the voicing decision where it was and leaves Viterbi to do
+   * the job it is actually good at: choosing *among* pitch candidates.
+   *
+   * The cap is the point. A real melodic leap (interval drills jump around)
+   * pays the transition once and then stays cheap; a spurious octave blip
+   * pays it twice — out and back — so the continuous path wins. That
+   * asymmetry, not raw distance, is what actually kills octave errors, and
+   * it is why this beats any amount of median filtering.
+   */
+  function viterbi(lattice, opts = {}) {
+    const LAMBDA   = opts.lambda        != null ? opts.lambda        : 0.22; // cost / semitone
+    const WEIGHT   = opts.clarityWeight != null ? opts.clarityWeight : 5.0;  // emission scale
+    const VTHRESH  = opts.voicedClarity != null ? opts.voicedClarity : 0.3;  // legacy detect() cutoff
+    const SWITCH   = opts.switchCost    != null ? opts.switchCost    : 0.6;  // voiced <-> unvoiced
+    const SUBHARM  = opts.subharmCost   != null ? opts.subharmCost   : 3.0;  // octave-ghost penalty
+    const UNVOICED = WEIGHT * (1 - VTHRESH);
+    const n = lattice.length;
+    const f0 = new Float32Array(n), clarity = new Float32Array(n);
+    if (!n) return { f0, clarity };
+
+    const ptrs = new Array(n);
+    let prev = null;
+    for (let t = 0; t < n; t++) {
+      const cands = lattice[t], K = cands.length;
+      const cur = new Float64Array(K + 1), ptr = new Int16Array(K + 1);
+
+      for (let j = 0; j <= K; j++) {
+        // --- emission ---
+        let e;
+        if (j === K) {
+          e = UNVOICED;
+        } else {
+          e = WEIGHT * (1 - cands[j].clarity);
+          // Sub-harmonic guard — MPM's "first peak above 0.9·max" rule, as a
+          // cost. This is load-bearing, not defensive: the NSDF of a periodic
+          // signal is ~1.0 at *every* multiple of the period, so f0, f0/2 and
+          // f0/3 arrive with identical clarity and the emission term cannot
+          // tell them apart. Without this the decoder happily locks onto f0/3
+          // on a clean sustained tone (measured: 220 Hz read as 73.3 Hz).
+          // Continuity does not save you either — the ghost is just as smooth
+          // over time as the fundamental.
+          for (let k = 0; k < K; k++) {
+            if (k === j) continue;
+            const ratio = cands[k].f0 / cands[j].f0;
+            const m = Math.round(ratio);
+            if (m >= 2 && Math.abs(ratio - m) < 0.03 * m &&
+                cands[k].clarity >= 0.8 * cands[j].clarity) { e += SUBHARM; break; }
+          }
+        }
+        // --- transition ---
+        if (!prev) { cur[j] = e; ptr[j] = -1; continue; }
+        const pc = lattice[t - 1], PK = pc.length;
+        let bestC = Infinity, bestI = 0;
+        for (let i = 0; i <= PK; i++) {
+          let tr;
+          if (i < PK && j < K) {
+            const semis = Math.abs(12 * Math.log2(cands[j].f0 / pc[i].f0));
+            tr = LAMBDA * Math.min(semis, 12);
+          } else if (i === PK && j === K) tr = 0;
+          else tr = SWITCH;
+          const c = prev[i] + tr;
+          if (c < bestC) { bestC = c; bestI = i; }
+        }
+        cur[j] = bestC + e; ptr[j] = bestI;
+      }
+      ptrs[t] = ptr; prev = cur;
+    }
+
+    // Backtrack from the cheapest terminal state.
+    let bi = 0;
+    for (let i = 1; i < prev.length; i++) if (prev[i] < prev[bi]) bi = i;
+    for (let t = n - 1; t >= 0; t--) {
+      const cands = lattice[t];
+      if (bi < cands.length) { f0[t] = cands[bi].f0; clarity[t] = cands[bi].clarity; }
+      else { f0[t] = -1; clarity[t] = 0; }
+      const back = ptrs[t][bi];
+      if (back < 0) break;
+      bi = back;
+    }
+    return { f0, clarity };
   }
 
   function medianSmooth(arr, k) {
@@ -251,7 +405,7 @@ const Track = (() => {
     return out;
   }
 
-  return { analyze, medianSmooth };
+  return { analyze, viterbi, medianSmooth };
 })();
 
 /* ------------------------------------------------------------------ *
@@ -420,6 +574,85 @@ const Metrics = (() => {
     return { sprDb: spr, er3kDb: er3k, tiltDbOct: tilt, spectrumDb: db, binHz };
   }
 
+  /**
+   * CPPS — smoothed cepstral peak prominence, in dB.
+   *
+   * Why this exists next to hnr(): that estimate is derived from the pitch
+   * detector's own NSDF peak, so the measurement and the thing it measures
+   * share a failure mode — a frame where tracking struggles reports "breathy"
+   * whether or not the voice was. CPPS never consults f0. It asks a separate
+   * question of the cepstrum: how far does the dominant periodicity stand
+   * above the surrounding noise floor? That independence is why the clinical
+   * literature settled on it (Hillenbrand & Houde 1996; Heman-Ackah 2003) as
+   * the most robust acoustic correlate of breathiness.
+   *
+   * Deliberately does NOT gate on track.f0 > 0 — filtering by the pitch
+   * tracker's voicing decision would reintroduce exactly the coupling this
+   * is here to remove. track is used only for frame timing.
+   *
+   * Absolute values are implementation-dependent (log-spectrum convention,
+   * smoothing widths, and regression band all shift them), so the bands in
+   * report.html are calibrated against this implementation, not lifted from
+   * a clinical paper. Relative ordering is what transfers.
+   *
+   * @returns {cppsDb, quefrencyHz, frames} — quefrencyHz is the cepstral
+   *   peak read back as a frequency, an f0 estimate arrived at independently.
+   */
+  function cpps(pcm, sampleRate, track, start, end, opts = {}) {
+    const win = opts.window || 2048;
+    const hann = Fft.hann(win);
+    const hop = Math.round(track.hopSec * sampleRate);
+    const acc = new Float64Array(win);
+    const re = new Float32Array(win), im = new Float32Array(win);
+    const cre = new Float32Array(win), cim = new Float32Array(win);
+    let used = 0;
+
+    for (let k = start; k < end; k++) {
+      const off = k * hop;
+      if (off + win > pcm.length) break;
+      for (let i = 0; i < win; i++) { re[i] = pcm[off + i] * hann[i]; im[i] = 0; }
+      Fft.transform(re, im, false);
+      // Real cepstrum: FFT of the log power spectrum. |X|² of a real signal
+      // is symmetric, so the result is real & symmetric too.
+      for (let i = 0; i < win; i++) {
+        cre[i] = Math.log(re[i] * re[i] + im[i] * im[i] + 1e-20); cim[i] = 0;
+      }
+      Fft.transform(cre, cim, false);
+      for (let i = 0; i < win; i++) acc[i] += Math.hypot(cre[i], cim[i]) / win;
+      used++;
+    }
+    if (!used) return null;
+
+    // Smooth across time (the averaging above) then across quefrency — the
+    // two passes that make it CPP*S* rather than raw CPP.
+    const sm = opts.smoothBins || 5;
+    const db = new Float64Array(win);
+    for (let i = 0; i < win; i++) {
+      let s = 0, c = 0;
+      for (let j = Math.max(0, i - sm); j <= Math.min(win - 1, i + sm); j++) { s += acc[j] / used; c++; }
+      db[i] = 20 * Math.log10(s / c + 1e-20);
+    }
+
+    const qLo = Math.max(2, Math.floor(sampleRate / (opts.fMax || 1000)));
+    const qHi = Math.min(win >> 1, Math.ceil(sampleRate / (opts.fMin || 60)));
+    if (qHi <= qLo + 4) return null;
+
+    // Regression line over the search band = the noise floor the peak stands on.
+    let sx = 0, sy = 0, sxx = 0, sxy = 0, cnt = 0;
+    for (let q = qLo; q <= qHi; q++) { sx += q; sy += db[q]; sxx += q * q; sxy += q * db[q]; cnt++; }
+    const slope = (cnt * sxy - sx * sy) / (cnt * sxx - sx * sx);
+    const icept = (sy - slope * sx) / cnt;
+
+    let peakQ = qLo, peakDb = -Infinity;
+    for (let q = qLo; q <= qHi; q++) if (db[q] > peakDb) { peakDb = db[q]; peakQ = q; }
+
+    return {
+      cppsDb: peakDb - (slope * peakQ + icept),
+      quefrencyHz: sampleRate / peakQ,
+      frames: used,
+    };
+  }
+
   const avg = (a) => { let s = 0; for (const v of a) s += v; return s / a.length; };
   const rmsOf = (a) => { let s = 0; for (const v of a) s += v * v; return Math.sqrt(s / a.length); };
   function movingAvg(arr, w) {
@@ -441,7 +674,7 @@ const Metrics = (() => {
     return out;
   }
 
-  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, vibrato, resonance };
+  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, cpps, vibrato, resonance };
 })();
 
 /* ------------------------------------------------------------------ *
