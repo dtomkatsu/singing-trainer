@@ -114,23 +114,34 @@ reports "breathy" whether or not the voice was. CPPS is read off the cepstrum
 and never consults f0. It deliberately does not gate on `track.f0 > 0`, since
 filtering by the tracker's voicing decision would reintroduce the coupling.
 
-Measured against synthesized voice with increasing additive breath noise:
+The cepstral peak doubles as an f0 estimate reached without the tracker, and it
+stays within a few cents of truth *even where HNR has collapsed to 4.2 dB* —
+which is the independence claim, demonstrated rather than asserted.
 
-| breath fraction | CPPS dB | HNR dB | cepstral f0 (true 196 Hz) |
-|---|---|---|---|
-| 0.00 | 13.03 | 40.0 | 195.9 |
-| 0.05 | 11.09 | 26.1 | 195.9 |
-| 0.12 | 10.31 | 17.8 | 196.7 |
-| 0.25 | 8.67 | 10.1 | 196.7 |
-| 0.40 | 6.97 | 4.2 | 195.1 |
+CPPS dB across the vocal range and increasing breath noise (window 4096):
 
-The cepstral peak recovers f0 to within a few cents *even at breath = 0.40 where
-HNR has collapsed to 4.2 dB* — which is the independence claim, demonstrated.
+| f0 | clean | .02 | .04 | .06 | .10 |
+|---|---|---|---|---|---|
+| 82.4 | 23.2 | 17.9 | 15.3 | 13.5 | 10.9 |
+| 110 | 23.5 | 17.6 | 15.3 | 13.7 | 11.4 |
+| 146.8 | 22.3 | 16.6 | 14.5 | 13.2 | 11.0 |
+| 196 | 21.1 | 15.5 | 13.7 | 12.2 | 10.2 |
+| 261.6 | 20.0 | 13.9 | 12.2 | 10.9 | 9.2 |
+| 392 | 18.6 | 11.5 | 9.8 | 8.7 | 7.4 |
+| 523 | 18.4 | 9.5 | 8.2 | 7.4 | 6.0 |
 
-Report bands (`good ≥ 11`, `okay ≥ 8`) are calibrated on **this implementation**.
-CPPS absolute values shift with log-spectrum convention, smoothing widths and
-regression band, so clinical thresholds do not port. Provisional until checked
-against real takes.
+Monotonic in breathiness at every pitch, which is what the metric is for.
+
+Report bands (`good ≥ 14`, `okay ≥ 9`) are calibrated on **this
+implementation** — CPPS absolute values shift with log-spectrum convention,
+smoothing widths and regression band, so clinical thresholds do not port.
+
+**Known limitation:** a residual f0 dependence survives. Read across any row
+above: at equal breathiness a 523 Hz voice scores ~8 dB below an 82 Hz one, so
+high voices get flagged more readily than they deserve. This is the same shape
+of caveat SPR already carries (RESEARCH.md §4: sopranos above ~C5 show no
+meaningful singer's formant). It was left uncorrected rather than fitted away,
+because the correction would be tuned entirely on synthetic voice.
 
 ---
 
@@ -175,9 +186,10 @@ mean RPA   median-5 94.0%   →   viterbi 94.7%
 The original scope called Viterbi "the highest-value upgrade available." That
 was an overstatement, and only building the eval harness first exposed it.
 
-### Two bugs the harness caught in itself
+### Four bugs found while building this
 
-Worth recording, because both produced confident, wrong conclusions:
+Worth recording, because each produced a confident and wrong conclusion, and
+three of them were in the *measuring apparatus* rather than the code under test:
 
 1. **The RNG was broken.** `seed * 1103515245` exceeds 2^53, so the LCG lost its
    low bits and emitted *periodic* "noise" — which a pitch tracker cheerfully
@@ -191,6 +203,21 @@ Worth recording, because both produced confident, wrong conclusions:
    clarity and the emission term cannot separate them. Without the guard the
    decoder read a clean 220 Hz tone as **73.3 Hz** (f0/3). There is now a
    regression test.
+3. **CPP was taking the raw cepstral maximum**, then subtracting the regression
+   line. The line slopes downward with quefrency, so the raw max is biased
+   toward short quefrencies — the spectral-envelope lobe. A clean 110 Hz tone
+   put its "peak" at the 1000 Hz band edge and reported a falsely low
+   prominence. The definition is the maximum of the *residual* above the line.
+   Only surfaced because the browser check happened to try a second pitch;
+   196 Hz alone had looked perfect.
+4. **The synthetic voice had a fixed 6 harmonics.** That makes an 82 Hz tone
+   stop at 494 Hz — nothing like a real bass, which has 60 harmonics inside the
+   same band. It produced an apparent 7.5→16.9 dB "f0 dependence" in CPPS that
+   was almost entirely an artifact of the test signal. Generating harmonics up
+   to a fixed 5 kHz ceiling (so harmonic *count* scales inversely with f0, as in
+   a real voice) collapsed most of it. The lesson generalises: a synthesis
+   shortcut that is invisible at one test frequency becomes the dominant effect
+   at another.
 
 ---
 

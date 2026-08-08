@@ -62,17 +62,20 @@ UI.nav('report.html');
 //      (our autocorrelation estimate runs a little low vs Praat).
 // cpps: the primary breathiness measure. Unlike HNR it never consults the
 //      pitch tracker, so it can't inherit a tracking failure as a "breathy"
-//      verdict. Bands are calibrated against *this* implementation on
-//      synthesized voice (clean 13 dB, moderately breathy ~8.7, heavily ~7) —
+//      verdict. Bands calibrated against *this* implementation on synthesized
+//      voice: clean reads 18-23 dB, moderately breathy 10-15, heavily <9.
 //      CPPS absolute values are implementation-dependent, so clinical
-//      thresholds don't port. Treat as provisional until checked on real takes.
+//      thresholds don't port. KNOWN LIMITATION: like SPR (see RESEARCH.md §4)
+//      it retains an f0 dependence — at equal breathiness a soprano reads
+//      ~8 dB lower than a bass — so high voices are flagged more readily than
+//      they should be. Provisional until checked against real takes.
 // spr (Omori 1996 bands): >-15 strong ring, -15..-25 moderate, <-25 weak.
 const THRESH = {
   driftSD: { good: (v) => v <= 15, warn: (v) => v <= 30 },   // cents SD of slow drift
   jitter:  { good: (v) => v <= 1.0, warn: (v) => v <= 2.5 }, // % frame-to-frame f0
   shimmer: { good: (v) => v <= 6,  warn: (v) => v <= 12 },   // % frame-to-frame amp
   hnr:     { good: (v) => v >= 18, warn: (v) => v >= 12 },   // dB (frame estimate)
-  cpps:    { good: (v) => v >= 11, warn: (v) => v >= 8 },    // dB — see note above
+  cpps:    { good: (v) => v >= 14, warn: (v) => v >= 9 },    // dB — see note above
   spr:     { good: (v) => v >= -15, warn: (v) => v >= -25 }, // dB, singing power ratio
   er3k:    { good: (v) => v >= -16, warn: (v) => v >= -22 }, // dB, 2.4-3.4k vs total
 };

@@ -154,7 +154,7 @@ transposition by median difference, snaps it to semitones, doesn't penalize key 
 | Pitch drift (sustained) | SD of 250 ms-smoothed cents contour | ≤15 ¢ | ≤30 ¢ | >30 ¢ | poor-pitch literature; Praat practice |
 | F0 perturbation | frame-to-frame Δf0 (jitter *proxy*) | ≤1.0% | ≤2.5% | >2.5% | Praat local jitter norm 1.04% (true jitter needs cycle marks) |
 | Amplitude flutter | frame-to-frame ΔRMS (shimmer proxy) | ≤6% | ≤12% | >12% | Praat shimmer norm 3.8% is for *speech*; singing + vibrato AM runs higher |
-| Breathiness (CPPS) | cepstral peak prominence over a regression baseline | ≥11 dB | ≥8 dB | <8 dB | Hillenbrand & Houde 1996; bands calibrated on *this* implementation |
+| Breathiness (CPPS) | cepstral peak prominence over a regression baseline | ≥14 dB | ≥9 dB | <9 dB | Hillenbrand & Houde 1996; bands calibrated on *this* implementation, and f0-dependent — see PITCH-TRACKING.md |
 | Clarity (HNR est.) | 10·log10(r/(1−r)), r = NSDF peak | ≥18 dB | ≥12 dB | <12 dB | Boersma 1993; clinical bands |
 | Ring (SPR) | peak dB 2–4 kHz − peak dB 0–2 kHz | ≥ −15 dB | ≥ −25 dB | < −25 dB | Omori 1996; Watts 2006 |
 | Singer's-formant energy | dB share of 2.4–3.4 kHz vs 50 Hz–5 kHz | ≥ −16 dB | ≥ −22 dB | < −22 dB | Sundberg band; app-calibrated |

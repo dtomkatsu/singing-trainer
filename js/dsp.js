@@ -599,7 +599,12 @@ const Metrics = (() => {
    *   peak read back as a frequency, an f0 estimate arrived at independently.
    */
   function cpps(pcm, sampleRate, track, start, end, opts = {}) {
-    const win = opts.window || 2048;
+    // 4096, not the tracker's 2048. A 2048 window at 48 kHz is 23.4 Hz per bin,
+    // so an 82 Hz voice has its harmonics only 3.5 bins apart — too smeared to
+    // give a clean rahmonic, and the peak lands anywhere. Doubling the window
+    // took a clean 82.4 Hz tone from 15.3 dB (with the peak misplaced at
+    // 787 Hz) to 23.2 dB with the quefrency correct.
+    const win = opts.window || 4096;
     const hann = Fft.hann(win);
     const hop = Math.round(track.hopSec * sampleRate);
     const acc = new Float64Array(win);
@@ -633,7 +638,10 @@ const Metrics = (() => {
       db[i] = 20 * Math.log10(s / c + 1e-20);
     }
 
-    const qLo = Math.max(2, Math.floor(sampleRate / (opts.fMax || 1000)));
+    // Search band. fMax is 800, not the tracker's 1200: below ~1.2 ms quefrency
+    // the cepstrum is dominated by the spectral envelope (formant structure)
+    // rather than by the rahmonic, and that lobe will out-peak a real f0.
+    const qLo = Math.max(2, Math.floor(sampleRate / (opts.fMax || 800)));
     const qHi = Math.min(win >> 1, Math.ceil(sampleRate / (opts.fMin || 60)));
     if (qHi <= qLo + 4) return null;
 
@@ -643,14 +651,17 @@ const Metrics = (() => {
     const slope = (cnt * sxy - sx * sy) / (cnt * sxx - sx * sx);
     const icept = (sy - slope * sx) / cnt;
 
-    let peakQ = qLo, peakDb = -Infinity;
-    for (let q = qLo; q <= qHi; q++) if (db[q] > peakDb) { peakDb = db[q]; peakQ = q; }
+    // Maximise the *residual* above that line, not the raw cepstrum. The line
+    // slopes down with quefrency, so taking the raw max biases the answer
+    // toward short quefrencies: a clean 110 Hz tone reported its peak at the
+    // 1000 Hz band edge and a falsely low prominence.
+    let peakQ = qLo, peakRes = -Infinity;
+    for (let q = qLo; q <= qHi; q++) {
+      const res = db[q] - (slope * q + icept);
+      if (res > peakRes) { peakRes = res; peakQ = q; }
+    }
 
-    return {
-      cppsDb: peakDb - (slope * peakQ + icept),
-      quefrencyHz: sampleRate / peakQ,
-      frames: used,
-    };
+    return { cppsDb: peakRes, quefrencyHz: sampleRate / peakQ, frames: used };
   }
 
   const avg = (a) => { let s = 0; for (const v of a) s += v; return s / a.length; };
