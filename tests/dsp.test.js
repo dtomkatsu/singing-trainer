@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// DSP tests for the singing trainer. No dependencies:  node singing/tests/dsp.test.js
+// DSP tests for the singing trainer. No dependencies:  node tests/dsp.test.js
 // Covers the math that matters: pitch detection accuracy, vibrato extraction,
 // resonance band measures, DTW alignment/transposition, note conversions, WAV
-// header — plus a syntax check of every singing/*.html inline script.
+// header — plus a syntax check of every *.html inline script.
 
 'use strict';
 const path = require('path');
@@ -158,7 +158,7 @@ console.log('Wav.encode');
 }
 
 /* ---------- Syntax-check singing pages ---------- */
-console.log('singing/*.html inline scripts parse');
+console.log('*.html inline scripts parse');
 {
   const dir = path.join(__dirname, '..');
   for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.html'))) {

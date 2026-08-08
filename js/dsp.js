@@ -256,7 +256,7 @@ const Track = (() => {
 
 /* ------------------------------------------------------------------ *
  * Metrics: everything the Voice Report needs, from pcm + track.
- * Threshold rationale lives in singing/RESEARCH.md.
+ * Threshold rationale lives in RESEARCH.md.
  * ------------------------------------------------------------------ */
 const Metrics = (() => {
 

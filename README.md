@@ -3,7 +3,7 @@
 Evidence-based pitch and tone training that runs entirely in the browser — built for iPhone
 Safari, hosted as static files on GitHub Pages, no accounts, no uploads, no build step.
 
-**▶ Live:** https://dtomkatsu.github.io/Learning-Bahasa-Indonesian/singing/
+**▶ Live:** https://dtomkatsu.github.io/singing-trainer/
 
 ## What it does
 
@@ -37,19 +37,18 @@ thresholds, caveats) and **[STYLE-GUIDE.md](STYLE-GUIDE.md)** (genre acoustics).
 Plain HTML + vanilla JS, no dependencies, no build:
 
 ```
-singing/
-  index.html            home + the science-in-one-screen
-  tuner.html            live pitch + spectrum
-  report.html           sustained-vowel analysis -> weakness diagnosis
-  exercises.html        match / blind / siren / interval trainers
-  compare.html          reference-vs-attempt DTW comparison
-  warmup.html           SOVT routine + before/after measurement
-  styles.html           genre guidance + R&B runs trainer
-  style.css
-  js/dsp.js             McLeod pitch detection, FFT, voice metrics, DTW, WAV
-  js/mic.js             iOS-safe mic capture, PCM recorder, tone player
-  js/ui.js              nav, canvas helpers, localStorage
-  tests/dsp.test.js     node singing/tests/dsp.test.js
+index.html            home + the science-in-one-screen
+tuner.html             live pitch + spectrum
+report.html            sustained-vowel analysis -> weakness diagnosis
+exercises.html         match / blind / siren / interval trainers
+compare.html           reference-vs-attempt DTW comparison
+warmup.html            SOVT routine + before/after measurement
+styles.html            genre guidance + R&B runs trainer
+style.css
+js/dsp.js              McLeod pitch detection, FFT, voice metrics, DTW, WAV
+js/mic.js              iOS-safe mic capture, PCM recorder, tone player
+js/ui.js               nav, canvas helpers, localStorage
+tests/dsp.test.js      node tests/dsp.test.js
 ```
 
 Engineering notes (the iOS-specific reasoning is in RESEARCH.md §12): pitch detection is a
@@ -62,7 +61,7 @@ holds a screen wake lock during sessions.
 ## Tests
 
 ```bash
-node singing/tests/dsp.test.js
+node tests/dsp.test.js
 ```
 
 Synthesized-signal tests: pitch accuracy within 10¢ across 82–880 Hz, octave-error resistance,
