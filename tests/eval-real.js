@@ -29,8 +29,11 @@ if (isMain && (!root || !fs.existsSync(path.join(root, 'Audio')))) {
   process.exit(2);
 }
 
-/** Minimal WAV reader: 16-bit PCM, walks chunks properly. Returns mono. */
-function readWav(file) {
+/** Minimal WAV reader: 16-bit PCM, walks chunks properly. Returns mono
+ *  (channel average), or a single channel via opts.channel (0-based) —
+ *  MIR-1K keeps accompaniment left / vocals right, so averaging would mix
+ *  music into the "clean vocal" evaluation. */
+function readWav(file, opts = {}) {
   const b = fs.readFileSync(file);
   if (b.toString('ascii', 0, 4) !== 'RIFF' || b.toString('ascii', 8, 12) !== 'WAVE') {
     throw new Error('not a RIFF/WAVE file: ' + file);
@@ -47,10 +50,15 @@ function readWav(file) {
   if (fmt.tag !== 1 || fmt.bits !== 16) throw new Error(`unsupported encoding (tag ${fmt.tag}, ${fmt.bits} bit): ` + file);
   const nSamp = Math.floor(data.size / 2 / fmt.ch);
   const pcm = new Float32Array(nSamp);
+  const ch = opts.channel;
   for (let i = 0; i < nSamp; i++) {
-    let s = 0;
-    for (let c = 0; c < fmt.ch; c++) s += b.readInt16LE(data.start + (i * fmt.ch + c) * 2);
-    pcm[i] = s / fmt.ch / 32768;
+    if (ch != null) {
+      pcm[i] = b.readInt16LE(data.start + (i * fmt.ch + ch) * 2) / 32768;
+    } else {
+      let s = 0;
+      for (let c = 0; c < fmt.ch; c++) s += b.readInt16LE(data.start + (i * fmt.ch + c) * 2);
+      pcm[i] = s / fmt.ch / 32768;
+    }
   }
   return { pcm, sampleRate: fmt.rate };
 }

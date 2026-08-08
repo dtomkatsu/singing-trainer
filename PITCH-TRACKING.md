@@ -328,6 +328,25 @@ Synthetic suite after retune: mean 97.5% (was 98.4 pre-retune, median baseline
 up-ghost guard firing on near-ties in synthetic jitter. All melisma wins,
 soprano cases, and the 0 dB SNR win are intact. Cost: 530 ms on a 30 s take.
 
+**Independent validation — MIR-1K** (`tests/eval-mir1k.js`; Hsu & Jang, 1000
+Chinese karaoke clips, 16 kHz, vocals right-channel, human pitch labels,
+280,317 voiced frames — different singers, language, recording chain, and
+sample rate than either the synthetic suite or vocadito):
+
+| | RPA | octave | unvoiced-miss |
+|---|---|---|---|
+| median-5 | 87.33% | 0.27% | 0.76% |
+| **decoder, final** | **92.27%** | **0.17%** | 1.35% |
+
+**+4.9 points with octave errors down**, and no constant was touched after
+vocadito — this is the vocadito-tuned configuration evaluated blind. The gap
+between the two datasets is informative: vocadito is clean solo singing where
+per-frame MPM is near ceiling (+0.4 available), MIR-1K is amateur karaoke
+where cross-frame decoding has real work to do (+4.9). The decoder pays off
+exactly where the synthetic stress cases predicted: hard material. The 16 kHz
+sample rate also exercised rate-independence — a 2048 window there is 128 ms,
+and nothing broke.
+
 **Known regression, documented not chased:** unvoiced-misses doubled overall
 (0.68 → 1.60%), concentrated in one very breathy track (vocadito_34: 73.3% vs
 median's 89.1%, 16.1% unvoiced-miss). Mechanism: on breathy frames the
@@ -337,13 +356,13 @@ knobs is already at the edge of what tuning can honestly support.
 
 ## 6. If the tracker needs to get better
 
-1. **More real data before more tuning.** One dataset, 40 tracks, and a
-   handful of interacting cost constants — the held-out split is the only
-   thing standing between this and overfitting. MIR-1K (1000 clips) or
-   PTDB-TUG (laryngograph truth) would let the constants be validated rather
-   than argued.
-2. **The vocadito_34 class** (very breathy voices misread as unvoiced) is the
-   clearest remaining real-world deficiency.
+1. ~~More real data before more tuning~~ — done: MIR-1K validated the
+   constants blind (+4.9 over baseline on 280k frames, octave errors down).
+2. **The breathy-voice unvoiced-miss class** is now confirmed on both
+   datasets (vocadito_34 at 73%; MIR-1K's worst clips run 25–79%
+   unvoiced-miss) and is the clearest remaining real-world deficiency. The
+   mechanism is known: sub-harmonic penalty + low clarity makes the unvoiced
+   state cheaper than the true candidate.
 3. **Only then consider a neural tracker**, and only for Compare-mode imported
    audio — see §2 for why it cannot serve the live or report paths.
 
