@@ -177,9 +177,9 @@ differs from classical resonance strategy, and the drill progressions the Styles
   Method** (NSDF + parabolic interpolation, 2048-sample window ≥ 2 periods of 60 Hz) does pitch.
   MPM/YIN-class detectors are the standard choice for monophonic voice; sub-10 ¢ accurate on clean
   vocals. Offline analysis adds a **Viterbi decode** over the per-frame candidate lattice — pYIN's
-  contribution over YIN (Mauch & Dixon 2014) — replacing the median-of-5 filter. Measured at +0.7
-  points of raw pitch accuracy on the synthetic eval set (`tests/eval-pitch.js`), concentrated in the
-  jittery and low-SNR cases; the live path stays frame-independent because it has to be causal.
+  contribution over YIN (Mauch & Dixon 2014) — replacing the median-of-5 filter. Measured at +2.6
+  points of raw pitch accuracy on the synthetic eval set (`tests/eval-pitch.js`) — +20.5 at 0 dB SNR —
+  for +1% wall clock; the live path stays frame-independent because it has to be causal.
   Full write-up, including why CREPE-tiny was evaluated and rejected, in PITCH-TRACKING.md.
 - Mic requested with `echoCancellation/noiseSuppression/autoGainControl: false` (iOS honors these
   only partially — the app therefore never scores absolute loudness).

@@ -158,38 +158,48 @@ case                        decoder    RPA@50¢  octave   gross
 steady 220 Hz (control)    median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
 jitter 3% + noise          median-5    97.1%    0.0%    2.9%
-                           viterbi     98.6%    0.0%    1.4%
+                           viterbi    100.0%    0.0%    0.0%
 SNR ~0 dB                  median-5    76.3%    0.0%   23.7%
-                           viterbi     79.1%    3.6%   20.9%
+                           viterbi     96.8%    0.0%    3.2%
 fading sustain             median-5    94.9%    0.0%    5.1%
-                           viterbi     95.4%    0.0%    4.6%
+                           viterbi     97.8%    0.0%    2.2%
 fast melisma 12 n/s        median-5    89.6%    0.0%   10.4%
                            viterbi     89.6%    0.0%   10.4%
 breath interruptions       median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
 interval leaps             median-5   100.0%    0.0%    0.0%
                            viterbi    100.0%    0.0%    0.0%
-mean RPA   median-5 94.0%   →   viterbi 94.7%
+soprano 784 Hz             median-5   100.0%    0.0%    0.0%
+                           viterbi    100.0%    0.0%    0.0%
+soprano 659 Hz + noise     median-5   100.0%    0.0%    0.0%
+                           viterbi    100.0%    0.0%    0.0%
+alto 392 Hz                median-5   100.0%    0.0%    0.0%
+                           viterbi    100.0%    0.0%    0.0%
+mean RPA   median-5 95.8%   →   viterbi 98.4%
 ```
 
-**+0.7 points, not a transformation.** Honest reading:
+**+2.6 points overall, +20.5 at 0 dB SNR, and zero octave errors** — for +1%
+wall clock (344 → 347 ms on a 30 s take). Reading:
 
-- The gain is real but modest, concentrated in the jittery and low-SNR cases.
-- It introduces a 3.6% octave-error rate at 0 dB SNR that the median filter did
-  not have. 0 dB is absurd for a close mic, but it is a real regression.
-- **Melisma is unchanged (89.6% both).** That ceiling is the 42.7 ms window, not
-  the decoder — no amount of decoding fixes 12 notes/sec against that window.
-  If the R&B drills need better, the fix is a shorter window plus a
-  higher-resolution f0 method, not a smarter path search.
-- Cost is +1% wall clock, so the trade is cheap even at this size of win.
+- The win concentrates exactly where predicted: noisy and unstable material.
+  The clean control was already at ceiling and stays there.
+- **Melisma is unchanged (89.6% both).** That ceiling is the 42.7 ms analysis
+  window, not the decoder — no amount of path search fixes 12 notes/sec against
+  that window. If the R&B drills need better, the fix is a shorter window and a
+  higher-resolution f0 method. This is now the clearest measured deficiency in
+  the app.
 
-The original scope called Viterbi "the highest-value upgrade available." That
-was an overstatement, and only building the eval harness first exposed it.
+An earlier revision of this document reported **+0.7 points** and recommended
+shipping the decoder only tentatively. That number was real but it was measuring
+a broken lattice: candidates were being ranked by clarity, which at high f0 is a
+coin flip between the fundamental and a dozen sub-harmonics. Fixing the ordering
+moved the same decoder from +0.7 to +2.6. The conclusion had been drawn from a
+correct measurement of the wrong thing.
 
-### Four bugs found while building this
+### Five bugs found while building this
 
 Worth recording, because each produced a confident and wrong conclusion, and
-three of them were in the *measuring apparatus* rather than the code under test:
+most were in the *measuring apparatus* rather than the code under test:
 
 1. **The RNG was broken.** `seed * 1103515245` exceeds 2^53, so the LCG lost its
    low bits and emitted *periodic* "noise" — which a pitch tracker cheerfully
@@ -218,6 +228,16 @@ three of them were in the *measuring apparatus* rather than the code under test:
    a real voice) collapsed most of it. The lesson generalises: a synthesis
    shortcut that is invisible at one test frequency becomes the dominant effect
    at another.
+5. **The candidate lattice was ranked by clarity.** The NSDF peaks at every
+   multiple of the period, so at 784 Hz about 13 sub-harmonics sit inside the
+   60 Hz search floor, all at clarity ≈1.0 on a clean tone — and sorting those
+   by clarity hands the decision to floating-point noise. 784 Hz decoded as
+   87 Hz (f0/9), 392 Hz as 196 Hz. Keeping candidates in ascending-lag order
+   preserves MPM's octave rule instead of discarding it, and took the mean from
+   94.7% to 98.4%. **The eval set had no case above 440 Hz**, so this was
+   invisible until a browser spot-check happened to try 392 and 523 Hz. Every
+   whole-number-of-points improvement in this document came after that gap was
+   closed.
 
 ---
 

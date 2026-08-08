@@ -135,7 +135,11 @@ console.log('Track viterbi decode');
   // f0, f0/2 and f0/3 arrive with identical clarity; a decoder that ranks on
   // clarity alone locks onto a sub-harmonic even on a perfectly clean tone.
   // This caught exactly that (220 Hz was read as 73.3 Hz).
-  for (const hz of [110, 196, 330]) {
+  // High pitches are the hard direction: at 784 Hz roughly 13 sub-harmonic
+  // peaks fit inside the 60 Hz search floor, all at clarity ~1.0 on a clean
+  // tone. Ranking candidates by clarity let float noise pick among them and
+  // read 784 Hz as 87 Hz; they are kept in ascending-lag order instead.
+  for (const hz of [110, 196, 330, 392, 523, 784]) {
     const t = Track.analyze(harmonicTone(hz, 1.5, [1, 0.5, 0.33, 0.25]), SR);
     const [s, e] = Metrics.longestVoicedRun(t);
     const vals = Array.from(t.f0.subarray(s, e)).filter((v) => v > 0).sort((a, b) => a - b);

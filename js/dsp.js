@@ -95,12 +95,22 @@ const Pitch = (() => {
   }
 
   /**
-   * Same NSDF pass as detect(), but returns the top `maxCand` peaks instead
-   * of committing to one. This is the information MPM's "first peak above
-   * 0.9·max" rule throws away, and it is exactly what resolves octave
-   * ambiguity once a decoder is allowed to look across frames — see
-   * Track.viterbi.
-   * @returns {cands: [{f0, clarity}] ranked by clarity, rms}
+   * Same NSDF pass as detect(), but returns up to `maxCand` peaks instead of
+   * committing to one. This is the information MPM's "first peak above
+   * 0.9·max" rule throws away, and it is what resolves octave ambiguity once
+   * a decoder can look across frames — see Track.viterbi.
+   *
+   * Candidates are kept in **ascending lag order** (highest f0 first), not
+   * ranked by clarity. That ordering is MPM's octave rule, preserved rather
+   * than discarded, and it is load-bearing: the NSDF of a periodic signal
+   * peaks at every multiple of the period, so at 784 Hz there are ~13
+   * sub-harmonic peaks inside the 60 Hz search floor, all sitting at clarity
+   * ≈1.0 on a clean tone. Sorting those by clarity hands the choice to
+   * floating-point noise — measured, that read 784 Hz as 87 Hz (f0/9) and
+   * 392 Hz as 196 Hz. Taking the shortest plausible lags instead puts the
+   * true f0 first and leaves the decoder to choose among real alternatives.
+   *
+   * @returns {cands: [{f0, clarity}] in ascending-lag order, rms}
    */
   function candidates(buf, sampleRate, maxCand = 5) {
     const n = buf.length;
@@ -111,17 +121,22 @@ const Pitch = (() => {
 
     const maxLag = nsdf(buf, sampleRate, scratch);
     const minLag = Math.max(2, Math.floor(sampleRate / FMAX));
-    const { peaks } = peaksOf(minLag, maxLag);
+    const { peaks, best } = peaksOf(minLag, maxLag);
+    if (!peaks.length || best < 0.3) return { cands: [], rms };  // matches detect()
 
+    // Generous inclusion floor: anything plausibly the period. The decoder,
+    // not this filter, is meant to make the final call.
+    const floor = 0.7 * best;
     const cands = [];
-    for (const p of peaks) {
+    for (const p of peaks) {                     // peaksOf yields ascending lag
+      if (scratch[p] < floor) continue;
       const { x, y } = parabolic(scratch, p);
       const f0 = sampleRate / x;
       if (f0 < FMIN || f0 > FMAX) continue;
       cands.push({ f0, clarity: Math.min(1, Math.max(0, y)) });
+      if (cands.length >= maxCand) break;
     }
-    cands.sort((a, b) => b.clarity - a.clarity);
-    return { cands: cands.slice(0, maxCand), rms };
+    return { cands, rms };
   }
 
   return { detect, candidates, FMIN, FMAX };

@@ -51,6 +51,9 @@ function render({ f0, secs, harm, noise = 0, jitter = 0, ampFn = null, amp = 0.2
 }
 
 const VOICE = [1, 0.5, 0.33, 0.25, 0.18, 0.12];
+// A high voice has few harmonics below 5 kHz; a fixed-length harmonic list
+// would make a 784 Hz tone unrealistically rich. See PITCH-TRACKING.md §4.
+const HIGH = [1, 0.45, 0.22, 0.10, 0.05];
 const steps = (list) => (t) => { for (const [end, f] of list) if (t < end) return f; return list[list.length - 1][1]; };
 
 // Every case below is a documented failure mode of autocorrelation trackers.
@@ -84,6 +87,14 @@ const CASES = [
   // Guard rail: a decoder that smooths away real leaps must score badly here.
   { name: 'interval leaps',       secs: 4, f0: steps([[0.8, 220], [1.6, 330], [2.4, 440], [3.2, 277.18], [4, 220]]), harm: VOICE,
     transitions: [0.8, 1.6, 2.4, 3.2] },
+
+  // High voices. The NSDF search runs to lag 800 (60 Hz), so at 784 Hz there
+  // are ~13 sub-harmonic peaks inside the range, all near clarity 1.0 on a
+  // clean tone. Whichever one wins is then decided by numerical noise. These
+  // cases were missing and the decoder was silently octave-erroring here.
+  { name: 'soprano 784 Hz',       secs: 3, f0: () => 784, harm: HIGH },
+  { name: 'soprano 659 Hz + noise', secs: 3, f0: () => 659, harm: HIGH, noise: 0.06 },
+  { name: 'alto 392 Hz',          secs: 3, f0: () => 392, harm: HIGH },
 ];
 
 function score(track, f0Fn, transitions, voicedFn) {
