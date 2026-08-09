@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0e14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Ctext%20y='0.9em'%20font-size='90'%3E%F0%9F%8E%A4%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
@@ -392,6 +394,34 @@ const App = (() => {
     return true;
   }
 
+  // Swipe between modes. A deliberate horizontal drag flips one mode in tab
+  // order; anything mostly-vertical is scrolling and is left alone. Swipes
+  // that begin on a canvas or a pill row never navigate — those surfaces are
+  // interactive in their own right.
+  function initSwipe() {
+    let x0 = 0, y0 = 0, t0 = 0, live = false;
+    const vp = document.getElementById('viewport');
+    vp.addEventListener('touchstart', (e) => {
+      const t = e.target;
+      // Exclude only surfaces where a horizontal drag has meaning of its
+      // own. Buttons/links are fine to start a swipe on — the movement
+      // cancels the tap, so there is no conflict.
+      if (t.closest('canvas, .pill-select, input, label')) { live = false; return; }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+      t0 = performance.now(); live = true;
+    }, { passive: true });
+    vp.addEventListener('touchend', (e) => {
+      if (!live) return;
+      live = false;
+      const dx = e.changedTouches[0].clientX - x0;
+      const dy = e.changedTouches[0].clientY - y0;
+      if (performance.now() - t0 > 600) return;                    // a drag, not a swipe
+      if (Math.abs(dx) < 64 || Math.abs(dx) < 2 * Math.abs(dy)) return;
+      const i = ORDER.indexOf(current) + (dx < 0 ? 1 : -1);
+      if (i >= 0 && i < ORDER.length) location.hash = '#' + ORDER[i];
+    }, { passive: true });
+  }
+
   function init() {
     $$('nav.tabbar button').forEach((b) =>
       b.addEventListener('click', () => { location.hash = '#' + b.dataset.view; }));
@@ -400,6 +430,7 @@ const App = (() => {
     const fromHash = () => show((location.hash || '#home').slice(1));
     window.addEventListener('hashchange', fromHash);
     window.addEventListener('resize', () => current && movePuck(current));
+    initSwipe();
     fromHash();
     requestAnimationFrame(() => movePuck(current));   // after layout
   }
@@ -479,7 +510,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const n = Notes.nearest(r.f0);
       smoothedCents = smoothedCents * 0.6 + n.cents * 0.4;
       haveNote = true;
-      $('note').textContent = n.name;
+      if ($('note').textContent !== n.name) {
+        $('note').textContent = n.name;
+        $('note').classList.remove('pop'); void $('note').offsetWidth;
+        $('note').classList.add('pop');
+      }
       $('note').style.color = Math.abs(smoothedCents) <= 10 ? UI.css('--good') :
                               Math.abs(smoothedCents) <= 25 ? UI.css('--warn') : UI.css('--bad');
       $('sub').textContent = r.f0.toFixed(1) + ' Hz · ' + UI.fmt.cents(smoothedCents);
@@ -540,7 +575,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await Mic.resume();
     $('recBtn').disabled = true;
     $('results').style.display = 'none';
-    for (let c = 3; c >= 1; c--) { $('count').textContent = c; await sleep(700); }
+    for (let c = 3; c >= 1; c--) {
+      $('count').textContent = c;
+      $('count').classList.remove('tick'); void $('count').offsetWidth;
+      $('count').classList.add('tick');
+      await sleep(700);
+    }
     $('count').textContent = 'sing…';
     $('recBtn').classList.add('recording');
     Mic.beginRecording();

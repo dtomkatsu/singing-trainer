@@ -138,6 +138,8 @@ button:disabled { opacity: 0.45; transform: none; box-shadow: none; }
 canvas { width: 100%; display: block; border-radius: 12px; background: #0a0e15; touch-action: none; }
 
 .bignote { font-size: 3.4rem; font-weight: 800; text-align: center; line-height: 1.1; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; transition: color 0.2s; }
+.bignote.pop { animation: notepop 0.28s var(--ease-spring); }
+@keyframes notepop { 0% { transform: scale(0.92); } 60% { transform: scale(1.05); } 100% { transform: none; } }
 .bigsub { text-align: center; color: var(--dim); font-variant-numeric: tabular-nums; min-height: 1.5em; }
 
 .meter { height: 10px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
@@ -164,6 +166,8 @@ table.metrics td:last-child { text-align: right; font-variant-numeric: tabular-n
 }
 
 .countdown { font-size: 2.6rem; font-weight: 800; text-align: center; min-height: 1.2em; font-variant-numeric: tabular-nums; }
+.countdown.tick { animation: cdpulse 0.5s ease-out; }
+@keyframes cdpulse { 0% { transform: scale(1.22); opacity: 0.6; } 100% { transform: none; opacity: 1; } }
 ul { padding-left: 20px; margin: 6px 0; }
 li { margin: 4px 0; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
