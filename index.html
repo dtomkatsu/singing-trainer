@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 
@@ -31,6 +31,7 @@
   <div class="modegrid">
     <a class="modecard" href="#report"><span class="mc-ico">🩺</span><b>Voice report</b><span class="small dim">Sing one note; get measured on steadiness, breathiness, vibrato, and resonance.</span></a>
     <a class="modecard" href="#tuner"><span class="mc-ico">🎯</span><b>Live tuner</b><span class="small dim">Real-time pitch trace and a spectrum view with the “ring” band highlighted.</span></a>
+    <a class="modecard" href="#ring"><span class="mc-ico">🔔</span><b>Ring trainer</b><span class="small dim">Build resonance on a guided ladder — live meter first, then switched off.</span></a>
     <a class="modecard" href="#drills"><span class="mc-ico">🎹</span><b>Pitch drills</b><span class="small dim">Note matching, blind matching, sirens, and intervals — sized to your range.</span></a>
     <a class="modecard" href="#compare"><span class="mc-ico">🎼</span><b>Compare</b><span class="small dim">Sing against a reference melody and see both contours aligned and scored.</span></a>
     <a class="modecard" href="#warmup"><span class="mc-ico">🥤</span><b>Warm-up</b><span class="small dim">Guided straw-phonation routine with a measurable before/after.</span></a>
@@ -41,7 +42,7 @@
   <div class="card">
     <ul class="small">
       <li><b>1.</b> <a href="#warmup">Warm-up</a> — straw + lip trills (5 min). Best-evidenced tone exercise there is.</li>
-      <li><b>2.</b> <a href="#drills">Pitch work</a> — 10 matches, then 5 <b>blind</b> matches (5 min). The blind reps are the ones that stick.</li>
+      <li><b>2.</b> <a href="#drills">Pitch work</a> — 10 matches, then 5 <b>blind</b> matches (5 min). The blind reps are the ones that stick. If the report flagged your <i>resonance</i> rather than your pitch, spend this block on the <a href="#ring">Ring trainer</a> instead.</li>
       <li><b>3.</b> <a href="#compare">Repertoire</a> — one phrase of a real song against its reference, three takes, <i>listen to your own recording</i> between takes (5 min).</li>
       <li><b>Weekly:</b> one <a href="#report">voice report</a> to watch the numbers move. Daily shorts beat weekend marathons (spacing effect, d≈0.54).</li>
     </ul>
@@ -141,6 +142,51 @@
         <div class="dim small">Progress (ring = resonance ratio, higher is better)</div>
         <canvas id="histChart"></canvas>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ RING ============================ -->
+<section class="view" id="v-ring">
+  <h1>Ring trainer</h1>
+  <p class="dim">The report can tell you your voice lacks ring. This trains it — a four-stage ladder with a live measurement, ending with the meter switched off. Resonance is the most trainable tone problem there is; you should hear a change inside one session.</p>
+
+  <div class="card mic-gate">
+    <button class="primary big" data-micbtn>Enable microphone</button>
+    <p class="small dim" style="margin-top:8px">Audio never leaves your phone. One tap unlocks every mode.</p>
+  </div>
+
+  <div class="mic-app">
+    <div class="card tight" id="ringCal">
+      <h3 style="margin-top:0">1 · Your baseline</h3>
+      <p class="small dim">Sing a plain, comfortable “ah” for 4 seconds — no effort, no trying to sound good. That reading becomes the number every target is set from, so an honest one is worth more than a flattering one.</p>
+      <div class="btnrow"><button id="calBtn">● Measure baseline</button></div>
+      <p id="calTxt" class="small dim"></p>
+    </div>
+
+    <div class="card tight" id="ringLadder" style="display:none">
+      <h3 style="margin-top:0">2 · The ladder</h3>
+      <div id="stageList"></div>
+    </div>
+
+    <div class="card tight" id="ringTrial" style="display:none">
+      <div class="bignote" id="ringVowel">—</div>
+      <div class="bigsub" id="ringCue">press Start</div>
+      <div class="small dim" style="margin-top:10px" id="ringMeterLbl">Ring <span id="ringNow"></span></div>
+      <div class="meter"><div id="ringMeterBar" style="width:0%; background:var(--violet)"></div><div class="tick" id="ringTick" style="left:0%"></div></div>
+      <canvas id="ringCanvas" style="margin-top:10px"></canvas>
+      <div class="btnrow">
+        <button class="primary" id="ringGo">Start trial</button>
+        <button id="ringHear">🔊 Hear pitch</button>
+      </div>
+      <div class="bigsub" id="ringResult"></div>
+      <div class="small dim" id="ringProg"></div>
+    </div>
+
+    <div class="card small dim">
+      <p style="margin-top:0"><b>Why the meter goes away.</b> Steinhauer &amp; Eichhorn (2025) taught 92 adults this exact skill — twang — and crossed practice structure with feedback frequency. Blocked practice with feedback on every rep won the in-session scores and <i>degraded</i> what was retained; random practice with feedback on ~55% of reps did the opposite. So stages 1–2 give you the meter to find the sensation, and stages 3–4 take it away, because that is the part that lasts.</p>
+      <p><b>Why these vowels, in this order.</b> Singer’s-formant energy is vowel-dependent (Feng &amp; Howard 2023), so the ladder runs ring-easy to ring-hard and re-baselines each vowel on its first appearance — otherwise the ladder would just be measuring vowel changes and calling it progress.</p>
+      <p style="margin-bottom:0">Twang narrows the epilaryngeal tube and boosts 2–4 kHz (Titze et al. 2003; Lombard &amp; Steinhauer 2007; Jelinger et al. 2024 MRI). Real-time singer’s-formant feedback goes back to Rossiter &amp; Howard’s ALBERT (1996). Citations: <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/RESEARCH.md">RESEARCH.md</a>.</p>
     </div>
   </div>
 </section>
@@ -321,21 +367,23 @@
   <button data-view="home"><span class="ico">🏠</span>Home</button>
   <button data-view="tuner"><span class="ico">🎯</span>Tuner</button>
   <button data-view="report"><span class="ico">🩺</span>Report</button>
+  <button data-view="ring"><span class="ico">🔔</span>Ring</button>
   <button data-view="drills"><span class="ico">🎹</span>Drills</button>
   <button data-view="compare"><span class="ico">🎼</span>Compare</button>
   <button data-view="warmup"><span class="ico">🥤</span>Warm-up</button>
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=3"></script>
-<script src="js/mic.js?v=3"></script>
-<script src="js/ui.js?v=3"></script>
+<script src="js/dsp.js?v=4"></script>
+<script src="js/mic.js?v=4"></script>
+<script src="js/ui.js?v=4"></script>
+<script src="js/practice.js?v=4"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
 'use strict';
 const App = (() => {
-  const ORDER = ['home', 'tuner', 'report', 'drills', 'compare', 'warmup', 'styles'];
+  const ORDER = ['home', 'tuner', 'report', 'ring', 'drills', 'compare', 'warmup', 'styles'];
   const views = {};                       // name -> {enter, leave, onMic}
   let current = null;
   let micOn = false;
@@ -660,7 +708,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     if (level.spr !== 'good' || level.er3k !== 'good') diags.push(['Lack of resonance / ring',
       'Your energy above 2 kHz is low relative to the fundamental — the voice will sound small or muffled and won’t carry. This is the most trainable tone problem.',
-      'Do the <a href="#warmup">straw phonation set</a> daily (strongest evidence of any tone exercise), then “nya-nya-nya” twang drills, then re-sing your vowel on the <a href="#tuner">tuner</a> watching the purple ring band light up. Forward humming (“mmm” until lips tickle) before singing also helps.']);
+      'Run the <a href="#ring">Ring trainer</a> — it is built for exactly this: a four-stage twang ladder that sets targets from your own baseline, shows you a live measurement while you hunt for the sensation, then takes the meter away so the skill survives without it. Pair it with the <a href="#warmup">straw phonation set</a> daily (strongest evidence of any tone exercise).']);
     if (level.breath !== 'good') diags.push(['Breathiness',
       'A noticeable share of your sound is airflow noise rather than tone — often incomplete vocal-fold closure. (In R&B/pop, breathiness is also a legitimate stylistic color — what matters is being able to switch it off on demand; see <a href="#styles">Styles</a>.)',
       'Gentle glottal onsets (“uh-oh” then sing the second syllable), straw phonation, and humming. Avoid whisper-singing while training this. If breathiness is constant and effortful, a laryngologist check is worth it.']);
@@ -672,7 +720,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       'Semi-occluded exercises (straw, lip trills) at easy volume reset the balance; yawn-sigh glides release laryngeal tension. Keep volume moderate for a week and re-test.']);
     if (vib && !vib.present) diags.push(['No vibrato (optional)',
       'A straight tone is legitimate in pop; classical/musical-theatre styles want 5–7 Hz vibrato, and R&B wants it late — straight first, blooming near the end of the note (drill it in <a href="#styles">Styles</a>).',
-      'Practice pulsing a held note at 4 pulses/sec (metronome), then let the pulses smooth out. It emerges from a relaxed larynx — never force a wobble.']);
+      'The studio method is to pulse a held note <i>at the target rate — 5–6 per second, not slower</i> — then let the pulses smooth out. Be aware this induction method has no controlled evidence behind it (unlike most advice in this app); what <i>is</i> evidenced is that singers who already have vibrato can shift its rate toward a target within one session (Dromey 2003), and that breathing imagery regularises it (Moorcroft &amp; Kenny 2015). It emerges from a relaxed larynx — never force a wobble.']);
     if (!diags.length) diags.push(['Solid across the board', 'Nothing flagged on this take.',
       'Push difficulty: re-test at the top and bottom of your range, at pianissimo, and on “ee”/“oo” vowels — weaknesses show at the edges.']);
 
@@ -714,6 +762,348 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       if (!live) { live = true; raf = requestAnimationFrame(liveLoop); }
     },
     leave() { live = false; cancelAnimationFrame(raf); },
+    onMic() {},
+  });
+})();
+</script>
+
+<script>
+/* ===================== Ring (resonance) trainer ===================== */
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  // Ring-easy to ring-hard. Singer's-formant energy is vowel-dependent
+  // (Feng & Howard 2023), so each vowel gets its own baseline rather than
+  // being scored against a number earned on a different mouth shape.
+  const VOWELS = {
+    nga: { label: 'ng–ah', cue: 'Hum “ng” as in si-ng, feel the buzz, then open to “ah” without losing it.' },
+    ee:  { label: 'ee',    cue: 'Smile-shaped “ee” as in see — the brightest vowel, where ring comes easiest.' },
+    nya: { label: 'nyaa',  cue: 'Bratty duck. Witch cackle. Bright, nasal, slightly obnoxious — that unflattering sound is the target.' },
+    ah:  { label: 'ah',    cue: 'Open “ah” as in father — the neutral vowel your report is measured on.' },
+    oo:  { label: 'oo',    cue: 'Rounded “oo” as in boot. The hardest place to keep ring, so the real test.' },
+  };
+  const ALL_V = ['nga', 'ee', 'nya', 'ah', 'oo'];
+
+  // The ladder. concurrent = live bar during the note; kr = result after it.
+  // Stages 1–2 give both (find the sensation at all), 3 removes the live bar,
+  // 4 interleaves targets and thins KR to 55% — the Steinhauer & Eichhorn
+  // 2025 condition that produced retention and transfer rather than a good
+  // in-session score.
+  const STAGES = [
+    { id: 'find', name: 'Find it', score: 'peak',
+      brief: 'Meter on, one sound, result every rep. Cross the line twice — you are hunting a sensation, not a score.',
+      structure: 'blocked', concurrent: true, kr: 1.0, trials: 6, targets: ['nya'], minPasses: 2 },
+    { id: 'hold', name: 'Hold it', score: 'sustain',
+      brief: 'Same sound, but the ring has to stay up through the note instead of flashing once.',
+      structure: 'blocked', concurrent: true, kr: 1.0, trials: 6, targets: ['nya'], passRate: 0.7 },
+    { id: 'fade', name: 'Meter off', score: 'median',
+      brief: 'The bar is hidden while you sing; you still get the number afterwards. Feel for it, then check yourself.',
+      structure: 'blocked', concurrent: false, kr: 1.0, trials: 6, targets: ['nya', 'ee'], passRate: 0.7 },
+    { id: 'transfer', name: 'Transfer', score: 'median',
+      brief: 'Random vowel, random pitch, result on ~55% of reps. Expect to feel worse here — this is the part that lasts.',
+      structure: 'random', concurrent: false, kr: 0.55, trials: 10, targets: ALL_V, passRate: 0.7 },
+  ];
+
+  // Omori's singer/non-singer SPR gap is 5–10 dB, so +6 over your own honest
+  // baseline is a real but single-session-reachable ask.
+  const TARGET_GAIN = 6;
+  const METER_LO = -4, METER_HI = 12;          // bar span, dB relative to baseline
+  const CAPTURE_S = 4;
+
+  const sched = Practice.create({ key: 'ring', store: UI.store, stages: STAGES });
+  let baselines = UI.store.get('ring.baselines', {});
+  let ringC = null, busy = false, curHz = -1;
+
+  const targetFor = (v) => (baselines[v] == null ? null : baselines[v] + TARGET_GAIN);
+  const pctOf = (spr, base) =>
+    Math.max(0, Math.min(100, ((spr - (base + METER_LO)) / (METER_HI - METER_LO)) * 100));
+
+  /* ---------- capture ---------- */
+
+  /**
+   * Sample live SPR for `secs`, optionally driving the meter as it goes.
+   *
+   * Driven by requestAnimationFrame rather than a setTimeout loop, matching
+   * the tuner and report. A timer loop is clamped to ~1 Hz whenever the tab
+   * loses focus, which silently turns a 4-second take into five spectra —
+   * enough to compute a confident-looking median off almost no data. rAF at
+   * least stops honestly when the page is hidden, and the backstop below makes
+   * sure a starved frame loop still settles the promise instead of wedging the
+   * button on `busy` forever.
+   *
+   * @returns {{samples, frames, elapsed}}
+   */
+  function capture(secs, showLive, base) {
+    return new Promise((resolve) => {
+      const spec = new Float32Array(Mic.binCount() || 1024);
+      const out = [];
+      const t0 = performance.now() / 1000;
+      let frames = 0, settled = false;
+
+      const finish = () => {
+        if (settled) return;
+        settled = true; clearTimeout(guard);
+        resolve({ samples: out, frames, elapsed: performance.now() / 1000 - t0 });
+      };
+      const guard = setTimeout(finish, secs * 1000 + 2000);
+
+      const step = () => {
+        if (settled) return;
+        const t = performance.now() / 1000 - t0;
+        frames++;
+        const binHz = Mic.liveSpectrumDb(spec);
+        if (binHz) {
+          const spr = Metrics.sprFromDb(spec, binHz, { floorDb: -85 });
+          if (spr != null) out.push({ t, v: spr });
+          if (showLive && base != null) {
+            $('ringMeterBar').style.width = (spr == null ? 0 : pctOf(spr, base)).toFixed(0) + '%';
+            $('ringNow').textContent = spr == null ? '—' : spr.toFixed(1) + ' dB';
+          }
+        }
+        if (showLive) drawRing(out, secs, base);
+        if (t < secs) requestAnimationFrame(step); else finish();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  /**
+   * Distinguish "you were quiet" from "this tab wasn't being painted" — the
+   * two produce an identical empty take, and telling someone to sing louder
+   * when the real problem is a backgrounded tab sends them chasing their voice.
+   */
+  const shortfall = (cap) => cap.frames < 30
+    ? 'the browser throttled this tab mid-take — keep the app in the foreground (or add it to your home screen) and try again.'
+    : 'didn’t hear enough steady tone — hold the sound longer, or move the phone closer.';
+
+  /**
+   * Frames before 0.8 s are onset, not tone — a scoop or a glottal attack can
+   * park a big transient in the ring band and flatter the score.
+   *
+   * Sufficiency is judged on the *time span* the steady samples cover, not
+   * their count, so the verdict doesn't depend on how fast the device happened
+   * to be painting.
+   */
+  function scoreTrial(cap, mode, target) {
+    const steady = cap.samples.filter((s) => s.t > 0.8);
+    const span = steady.length ? steady[steady.length - 1].t - steady[0].t : 0;
+    if (steady.length < 12 || span < 1.5) return null;
+    const vals = steady.map((s) => s.v).sort((a, b) => a - b);
+    const median = vals[vals.length >> 1];
+    // p90 rather than max: one fluke frame shouldn't clear a stage.
+    const peak = vals[Math.min(vals.length - 1, Math.floor(vals.length * 0.9))];
+    const frac = steady.filter((s) => s.v >= target).length / steady.length;
+    const pass = mode === 'peak' ? peak >= target
+      : mode === 'sustain' ? frac >= 0.6
+      : median >= target;
+    return { median, peak, frac, pass };
+  }
+
+  /* ---------- drawing ---------- */
+
+  function drawRing(samples, secs, base, target) {
+    if (!ringC) return;
+    const { ctx, w, h } = ringC;
+    ctx.clearRect(0, 0, w, h);
+    if (base == null) return;
+    const lo = base + METER_LO, hi = base + METER_HI;
+    const Y = (v) => h - ((v - lo) / (hi - lo)) * h;
+    const X = (t) => (t / secs) * w;
+
+    if (target != null && target >= lo && target <= hi) {
+      ctx.strokeStyle = UI.css('--good'); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, Y(target)); ctx.lineTo(w, Y(target)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = UI.css('--good'); ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('target', 4, Y(target) - 4);
+    }
+    ctx.strokeStyle = 'rgba(147,160,180,0.35)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, Y(base)); ctx.lineTo(w, Y(base)); ctx.stroke();
+    ctx.fillStyle = 'rgba(147,160,180,0.7)'; ctx.font = '10px -apple-system, sans-serif';
+    ctx.fillText('your baseline', 4, Y(base) + 12);
+
+    ctx.strokeStyle = UI.css('--violet'); ctx.lineWidth = 2; ctx.beginPath();
+    samples.forEach((s, i) => {
+      const x = X(s.t), y = Y(Math.max(lo, Math.min(hi, s.v)));
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  /* ---------- ladder UI ---------- */
+
+  function renderLadder() {
+    const st = sched.state();
+    $('stageList').innerHTML = STAGES.map((s, i) => {
+      const done = i < st.stageIndex, cur = i === st.stageIndex;
+      const mark = done ? '✓' : cur ? '▸' : '·';
+      const prog = cur && !st.complete ? ` <span class="dim">(${st.passes}/${st.needed} cleared)</span>` : '';
+      return `<div class="diag${done ? ' good' : ''}" style="${cur ? '' : 'opacity:.55;'}border-left-color:${done ? 'var(--good)' : cur ? 'var(--violet)' : 'var(--line)'}">
+        <b>${mark} ${i + 1}. ${s.name}${prog}</b><span class="small">${s.brief}</span>
+        <p class="small dim" style="margin:6px 0 0">${s.concurrent ? 'live meter on' : 'live meter off'} · result on ${Math.round(s.kr * 100)}% of reps · ${s.structure} order</p>
+      </div>`;
+    }).join('') + `<p class="small dim" style="margin-top:10px"><a href="#" id="ringReset">reset the ladder</a></p>`;
+
+    $('ringReset').addEventListener('click', (e) => {
+      e.preventDefault();
+      sched.reset(); renderLadder(); updateProg();
+      $('ringResult').textContent = 'ladder reset';
+    });
+  }
+
+  function updateProg() {
+    const st = sched.state();
+    const r = sched.retentionRate();
+    const retTxt = r == null ? 'no probes yet' : Math.round(r * 100) + '% of cold-start probes';
+    $('ringProg').innerHTML = st.complete
+      ? `Ladder complete · retention: ${retTxt}`
+      : `Stage ${st.stageIndex + 1}/${STAGES.length} — ${st.stage.name} · ${st.passes}/${st.needed} cleared · retention: ${retTxt}`;
+  }
+
+  function pickMidi(randomize) {
+    const range = UI.store.get('range', null);
+    let lo = 55, hi = 67;
+    if (range && range.lo != null && range.hi != null && range.hi - range.lo > 6) {
+      lo = range.lo + 2; hi = range.hi - 2;
+    }
+    return Math.round(randomize ? lo + Math.random() * Math.max(1, hi - lo) : (lo + hi) / 2);
+  }
+
+  /* ---------- baseline ---------- */
+
+  $('calBtn').addEventListener('click', async () => {
+    if (busy) return;
+    busy = true; $('calBtn').disabled = true; $('calBtn').classList.add('recording');
+    await Mic.resume();
+    $('calTxt').textContent = 'sing a plain “ah”…';
+    const s = await capture(CAPTURE_S, false, null);
+    $('calBtn').classList.remove('recording'); $('calBtn').disabled = false; busy = false;
+    const r = scoreTrial(s, 'median', -Infinity);
+    if (!r) { $('calTxt').textContent = shortfall(s); return; }
+    baselines.ah = r.median;
+    UI.store.set('ring.baselines', baselines);
+    $('calTxt').innerHTML = `Baseline on “ah”: <b>${r.median.toFixed(1)} dB</b> SPR — targets are set at <b>+${TARGET_GAIN} dB</b> over your own reading for each vowel. ` +
+      `<span class="dim">(Omori’s bands: above −15 dB is strong ring, below −25 dB is dull. Yours is a starting point, not a grade.)</span>`;
+    $('ringLadder').style.display = ''; $('ringTrial').style.display = '';
+    renderLadder(); updateProg(); nextPrompt();
+  });
+
+  /* ---------- trials ---------- */
+
+  let pending = null;
+
+  function nextPrompt() {
+    pending = sched.nextTrial();
+    if (!pending) {
+      $('ringVowel').textContent = '✓';
+      $('ringCue').textContent = 'Ladder complete. Come back tomorrow — the first rep will be a cold probe.';
+      $('ringGo').disabled = true;
+      return;
+    }
+    const v = VOWELS[pending.target];
+    const needBase = baselines[pending.target] == null;
+    $('ringVowel').textContent = v.label;
+    $('ringCue').textContent = needBase
+      ? `First time on this vowel — sing it normally to set its baseline.`
+      : (pending.probe ? 'Cold probe: no meter, no help. Sing it. ' : '') + v.cue;
+    $('ringGo').disabled = false;
+    $('ringGo').textContent = needBase ? 'Set baseline for this vowel' : 'Start trial';
+    // A baseline take has nothing to aim at yet, so the meter would just sit
+    // at zero looking like a failure.
+    const showMeter = pending.concurrent && !needBase;
+    $('ringMeterLbl').style.display = showMeter ? '' : 'none';
+    $('ringMeterBar').parentElement.style.display = showMeter ? '' : 'none';
+    $('ringMeterBar').style.width = '0%';
+    const t = targetFor(pending.target), b = baselines[pending.target];
+    $('ringTick').style.left = (t == null ? 0 : pctOf(t, b)) + '%';
+    if (ringC) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
+  }
+
+  $('ringHear').addEventListener('click', async () => {
+    await Mic.resume();
+    if (curHz > 0) { Mic.toneOn(curHz); setTimeout(Mic.toneOff, 900); }
+  });
+
+  $('ringGo').addEventListener('click', async () => {
+    if (busy || !pending) return;
+    busy = true; $('ringGo').disabled = true; $('ringResult').textContent = '';
+    await Mic.resume();
+    try { await runTrial(); } finally { busy = false; $('ringGo').disabled = false; }
+  });
+
+  async function runTrial() {
+    const trial = pending;
+    const vowel = trial.target;
+    const needBase = baselines[vowel] == null;
+    const midi = pickMidi(trial.stage.structure === 'random');
+    curHz = Notes.midiToHz(midi);
+
+    $('ringCue').textContent = 'listen…';
+    Mic.toneOn(curHz); await sleep(1000); Mic.toneOff();
+    $('ringCue').textContent = needBase ? `sing “${VOWELS[vowel].label}” normally on ${Notes.name(midi)}` : `sing “${VOWELS[vowel].label}” on ${Notes.name(midi)}!`;
+
+    const showLive = !needBase && trial.concurrent;
+    const base = baselines[vowel];
+    const cap = await capture(CAPTURE_S, showLive, base);
+
+    if (needBase) {
+      const r = scoreTrial(cap, 'median', -Infinity);
+      if (!r) { $('ringCue').textContent = shortfall(cap); return; }
+      baselines[vowel] = r.median;
+      UI.store.set('ring.baselines', baselines);
+      $('ringResult').innerHTML = `Baseline for “${VOWELS[vowel].label}”: <b>${r.median.toFixed(1)} dB</b> → target ${targetFor(vowel).toFixed(1)} dB`;
+      nextPrompt();
+      return;
+    }
+
+    const target = targetFor(vowel);
+    const r = scoreTrial(cap, trial.stage.score, target);
+    if (!r) {
+      $('ringResult').textContent = shortfall(cap);
+      $('ringCue').textContent = VOWELS[vowel].cue;
+      return;
+    }
+
+    const res = sched.record(trial, r.pass, { spr: +r.median.toFixed(1), vowel, midi });
+
+    // KR is withheld on a fixed proportion of reps — the withholding is the
+    // intervention, so say that plainly rather than showing nothing.
+    if (trial.kr) {
+      const gain = r.median - base;
+      const verdict = r.pass ? '✓ ring' : '· not yet';
+      const detail = trial.stage.score === 'sustain'
+        ? `held above target ${Math.round(r.frac * 100)}% of the note`
+        : trial.stage.score === 'peak'
+        ? `best ${r.peak.toFixed(1)} dB vs target ${target.toFixed(1)}`
+        : `median ${r.median.toFixed(1)} dB vs target ${target.toFixed(1)}`;
+      $('ringResult').innerHTML = `${verdict} — ${detail} <span class="dim">(${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB over your baseline)</span>`;
+      drawRing(cap.samples, CAPTURE_S, base, target);
+    } else {
+      $('ringResult').innerHTML = '<span class="dim">logged — no feedback on this rep, on purpose. Trust what it felt like.</span>';
+      if (ringC) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
+    }
+
+    if (trial.probe) $('ringResult').innerHTML += '<div class="small dim">cold probe — not counted toward the stage</div>';
+    if (res.advanced) $('ringResult').innerHTML += `<div class="small" style="color:var(--good)">stage cleared →</div>`;
+    renderLadder(); updateProg();
+    nextPrompt();                       // leaves ringResult alone: the verdict
+  }                                     // stays up until the next Start press
+
+  App.register('ring', {
+    enter() {
+      if (!App.micOn) return;
+      ringC = UI.canvas2d($('ringCanvas'), 150);
+      baselines = UI.store.get('ring.baselines', {});
+      if (baselines.ah != null) {
+        $('ringLadder').style.display = ''; $('ringTrial').style.display = '';
+        $('calTxt').innerHTML = `Baseline on “ah”: <b>${baselines.ah.toFixed(1)} dB</b> SPR. <a href="#" id="ringRecal">re-measure</a>`;
+        const rc = $('ringRecal');
+        if (rc) rc.addEventListener('click', (e) => { e.preventDefault(); $('calBtn').click(); });
+        sched.beginSession();
+        renderLadder(); updateProg(); nextPrompt();
+      }
+    },
+    leave() {},
     onMic() {},
   });
 })();

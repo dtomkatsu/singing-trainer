@@ -193,6 +193,37 @@ console.log('Metrics.resonance');
   ok(rr.er3kDb > rd.er3kDb, `singer's-formant band energy higher for ring`);
 }
 
+/* ---------- SPR (shared by the offline report and the live Ring meter) ---------- */
+console.log('Metrics.sprFromDb');
+{
+  const binHz = 23.4375;                                  // 48k / 2048
+  const mk = (fill) => { const d = new Float32Array(256); d.fill(-90); fill(d); return d; };
+  const at = (hz) => Math.round(hz / binHz);
+
+  const dull = mk((d) => { d[at(220)] = -20; d[at(3000)] = -55; });
+  const ringy = mk((d) => { d[at(220)] = -20; d[at(3000)] = -26; });
+  ok(approx(Metrics.sprFromDb(dull, binHz), -35, 1.5), 'SPR = 2-4k peak minus 0-2k peak (dull)');
+  ok(Metrics.sprFromDb(ringy, binHz) - Metrics.sprFromDb(dull, binHz) > 25, 'SPR rises when 3 kHz energy rises');
+
+  // The property the whole trainer rests on: a constant gain ahead of the
+  // measurement cancels, because SPR is a difference of two dB peaks.
+  const gained = Float32Array.from(dull, (v) => v + 17);
+  ok(approx(Metrics.sprFromDb(gained, binHz), Metrics.sprFromDb(dull, binHz), 1e-4),
+     'SPR is invariant to a constant gain (survives iOS AGC)');
+
+  ok(Metrics.sprFromDb(mk(() => {}), binHz, { floorDb: -85 }) === null, 'silent frame gates to null');
+
+  // Live and offline paths must agree, or "baseline + 6 dB" means nothing.
+  const amps = Array.from({ length: 20 }, (_, h) => 1 / Math.pow(h + 1, 2.5));
+  for (let h = 11; h <= 15; h++) amps[h] = 0.5;
+  const tone = harmonicTone(220, 2.5, amps);
+  const t = Track.analyze(tone, SR);
+  const [s, e] = Metrics.longestVoicedRun(t);
+  const off = Metrics.resonance(tone, SR, t, s, e);
+  ok(approx(Metrics.sprFromDb(off.spectrumDb, off.binHz), off.sprDb, 1e-6),
+     'resonance().sprDb is exactly sprFromDb() on the same spectrum');
+}
+
 /* ---------- DTW ---------- */
 console.log('Dtw.align');
 {

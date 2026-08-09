@@ -142,8 +142,10 @@ canvas { width: 100%; display: block; border-radius: 12px; background: #0a0e15; 
 @keyframes notepop { 0% { transform: scale(0.92); } 60% { transform: scale(1.05); } 100% { transform: none; } }
 .bigsub { text-align: center; color: var(--dim); font-variant-numeric: tabular-nums; min-height: 1.5em; }
 
-.meter { height: 10px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
+.meter { position: relative; height: 10px; background: var(--panel2); border-radius: 999px; overflow: hidden; }
 .meter > div { height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.15s; }
+/* Target marker on the Ring meter — the line you are trying to cross. */
+.meter > .tick { position: absolute; top: 0; bottom: 0; width: 2px; border-radius: 0; background: var(--good); transition: left 0.15s; }
 
 table.metrics { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 table.metrics td { padding: 9px 4px; border-bottom: 1px solid rgba(38,48,66,0.6); vertical-align: top; }
@@ -208,6 +210,16 @@ nav.tabbar button {
   transition: color 0.18s;
 }
 nav.tabbar button:active { transform: none; }
+/* Eight tabs on a phone leaves the longest labels ("Compare", "Warm-up") about
+   a pixel of slack at 375px and overflowing by 320px. Step the label down
+   rather than truncating it — the icon carries recognition, the word confirms. */
+@media (max-width: 430px) {
+  nav.tabbar button { font-size: 0.55rem; letter-spacing: 0; }
+}
+@media (max-width: 360px) {
+  nav.tabbar button { font-size: 0.5rem; }
+  nav.tabbar button .ico { font-size: 1.15rem; }
+}
 nav.tabbar button .ico { font-size: 1.28rem; line-height: 1.2; filter: grayscale(0.7) opacity(0.75); transition: filter 0.18s, transform 0.22s var(--ease-spring); }
 nav.tabbar button.on { color: var(--accent); }
 nav.tabbar button.on .ico { filter: none; transform: translateY(-1px) scale(1.06); }

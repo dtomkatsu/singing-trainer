@@ -83,8 +83,25 @@ audiation pause.
   algorithm-dependent, so the bands in §10 are calibrated against this implementation rather than
   lifted from a clinical paper. See PITCH-TRACKING.md.
 
+- The singer's-formant region is **vowel-dependent** (Feng & Howard 2023, on vallecular volume
+  changing with tongue position) — so a resonance target earned on one vowel does not transfer as a
+  number to another. Any ladder that walks across vowels has to re-baseline each one or it is
+  measuring the vowel, not the singer. **[moderate]**
+- Twang mechanism is now imaged, not just theorised: **oropharyngeal and aryepiglottic narrowing**
+  (Jelinger et al. 2024, MRI; Perta et al. 2021 pilot MRI), with perceived twang rising as
+  pharyngeal area narrows and the tract shortens (Titze et al. 2003). Sundberg & Thalén 2010
+  established that listeners identify it reliably and that it is a *filter* effect, largely
+  independent of the voice source. **[moderate–strong]**
+- Real-time singer's-formant feedback is not new: **Rossiter & Howard 1996** (*J Voice*) built
+  ALBERT, a display driven partly by energy in that band, for professional voice development.
+
 **In the app:** the tuner's purple band and ring meter, and the report's SPR/singer's-formant rows,
-are direct implementations of this literature, with Omori's bands as thresholds.
+are direct implementations of this literature, with Omori's bands as thresholds. The **Ring
+trainer** turns them into a task: a twang ladder that sets each target at *your own* baseline
++6 dB (the low end of Omori's 5–10 dB singer/non-singer gap), re-baselines per vowel, and runs the
+vowels ring-easy to ring-hard (/ŋa/ → /i/ → /æ/ → /a/ → /u/). SPR is the signal it trains against
+specifically because it is a difference between two dB peaks in one frame, so it is unchanged by
+the iOS gain the app can't switch off — see §12.
 
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
@@ -115,12 +132,30 @@ mic can actually score: sustained-note steadiness and phrase length.
   (typically ±50–100 ¢); regularity distinguishes vibrato from wobble. <4.5 Hz reads as a wobble,
   >7.5–8 Hz as a bleat. **[strong]**
 - Trainable over months, indirectly: rates converge toward ~5.2–5.8 Hz across years of training
-  (*J. Voice* 2010); **extent is more voluntarily controllable than rate**; it emerges from ease,
+  (Mürbe et al. 2007, longitudinal over 3 years of conservatory study); it emerges from ease,
   not force. Pop/R&B uses later-onset, narrower, often irregular vibrato (genre study,
   *J. Voice* 2025) — straight tone is a valid stylistic choice.
+- **Correction (Aug 2026): rate, not extent, is the controllable parameter.** This section
+  previously claimed the opposite. The intervention studies go the other way:
+  - Dromey, Carter & Hopkin 2003 (*J Voice* 17(2):168–78) — singers asked to match faster and
+    slower rate stimuli **could do so on demand**. Notably, slower rates came with *lower intensity
+    and less steady vibrato*, so training downward is training toward a wobble. **[moderate]**
+  - Moorcroft & Kenny 2015 (*J Voice* 29(2):182–90) — breathing imagery ("the breath directed up
+    and down as far from the larynx as possible") produced significantly more moderate and regular
+    rates, while "**vibrato extent was not responsive to any intervention**." **[moderate]**
+- Vibrato is **sustained by an auditory feedback loop** (Leydon, Bauer & Larson 2003, *JASA*
+  114(3):1575–81; Lester-Smith et al. 2023/2024 on masked and delayed feedback). Design
+  consequence: a continuously audible reference tone under the singer perturbs the very thing being
+  measured, so a rate target must be shown visually or sounded before the trial, not during it.
+- **What has no evidence:** deliberate *induction* of vibrato in singers who lack it — pulsed or
+  trilled exercises, metronome-paced pitch pulsation, jaw or laryngeal manipulation. A PubMed
+  search returns nothing on it. These are studio tradition, and the app now labels them as such
+  rather than voicing them like Titze or Omori. **[pedagogy only]**
 
-**In the app:** report measures rate/extent/regularity from the detrended F0 contour (3–9 Hz band);
-coaching frames vibrato as emergent, with optional 4-pulses-per-second guided pulsing.
+**In the app:** report measures rate/extent/regularity from the detrended F0 contour (3–9 Hz band).
+Coaching frames vibrato as emergent; where the pulse method is mentioned it is flagged as
+unevidenced and pinned to 5–6 pulses/sec rather than the 4/sec it used to suggest — which sat
+*below* the app's own 4.5–7.5 Hz "good" band and, per Dromey, trains toward instability.
 
 ## 8. Practice structure
 
@@ -131,6 +166,29 @@ coaching frames vibrato as emergent, with optional 4-pulses-per-second guided pu
 - **Self-listening**: you can't hear yourself accurately while singing (bone conduction); playback
   improves self-assessment (Silveira & Gavin 2016, *Psychology of Music*; "Are You Your Own Best
   Judge?" *J. Voice* 2021). Every recording in the app has a play-back button — use it. **[moderate]**
+- **How you schedule practice and feedback outweighs which drill you pick.** Steinhauer & Eichhorn
+  2025 (*J Voice*) taught 92 adults aged 55–80 — hypophonic patients, novice vocalists and expert
+  vocalists — a novel voice task (**twang**), crossing practice structure (blocked vs random) with
+  knowledge-of-results frequency (100% vs 55%), and measured acquisition, retention *and* transfer:
+
+  | | acquisition (in-session) | retention & transfer |
+  |---|---|---|
+  | blocked + 100% KR | best | **degraded** |
+  | random + 55% KR | worse | **best** |
+
+  In their words, "100% KR paired with Blocked practice increased motor performance, but degraded
+  motor learning." This is the guidance hypothesis (§2) measured directly on a *voice* task rather
+  than inferred from limb studies, and on the exact skill the Ring trainer teaches. **[moderate]**
+
+**In the app:** the Ring trainer runs on a shared schedule engine (`js/practice.js`) implementing
+that ladder — stages 1–2 blocked with the live meter and a result every rep so the sensation can be
+found at all, stage 3 with the live meter withdrawn, stage 4 interleaving vowels and pitches with
+KR thinned to 55%. Two feedback channels are modelled separately because the study manipulated only
+the second: *concurrent* (the meter during the note) and *KR* (the result after it). KR is
+distributed as an exactly-proportioned shuffled schedule, not a per-trial coin flip, so a 55% stage
+can't hand out nine unfed reps in a row by luck. The first trial of each new session is an unfed
+**retention probe** that is logged separately and never counts toward stage progress — the app
+reports that number, because in-session score is the one the literature says will mislead you.
 
 ## 9. Comparing your voice to a reference (karaoke-scoring science)
 
@@ -207,7 +265,11 @@ Pfordresher & Mantell 2014 · Zarate et al. 2010 · Dalla Bella et al. 2007/2011
 Sundberg 1974/2001 · Weiss, Brown & Morris 2001 · Omori et al. 1996 · Watts et al. 2006 ·
 Lombard & Steinhauer 2007 · Titze 2006 · Guzman et al. 2013 · SOVT systematic review *J. Voice* 2021 ·
 Meerschman et al. 2017/2019 · Watson & Hixon 1985 · Salomoni et al. 2016 · Desjardins & Bonilha 2020 ·
-Prame 1994/1997 · *J. Voice* vibrato-genre study 2025 · Driskell, Copper & Moran 1994 ·
+Prame 1994/1997 · *J. Voice* vibrato-genre study 2025 · Dromey, Carter & Hopkin 2003 ·
+Moorcroft & Kenny 2015 · Mürbe et al. 2007 · Nix et al. 2016 · Leydon, Bauer & Larson 2003 ·
+Lester-Smith et al. 2023/2024 · Steinhauer & Eichhorn 2025 · Salmoni, Schmidt & Walter 1984 ·
+Sundberg & Thalén 2010 · Titze, Story et al. 2003 · Jelinger et al. 2024 · Perta et al. 2021 ·
+Feng & Howard 2023 · Rossiter & Howard 1996 · Driskell, Copper & Moran 1994 ·
 Silveira & Gavin 2016 · Boersma 1993 · de Cheveigné & Kawahara 2002 (YIN) · Mauch & Dixon 2014 (pYIN) ·
 Kim et al. 2018 (CREPE) · Tsai & Lee 2012 · Salamon & Gómez 2012 · 30-year singing-assessment survey
 (arXiv 2601.12153, 2026).

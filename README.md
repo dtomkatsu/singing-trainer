@@ -11,6 +11,7 @@ Safari, hosted as static files on GitHub Pages, no accounts, no uploads, no buil
 |---|---|
 | **Voice report** | Sing one sustained "ahh"; get measured on pitch steadiness, micro-stability, breathiness (HNR), vibrato (rate/extent), and resonance (singing power ratio + singer's-formant band energy) — then a ranked list of *your* weaknesses, each mapped to the exercise with the best evidence for fixing it. |
 | **Live tuner** | Real-time note + cents needle, scrolling pitch trace, and a spectrum view with the 2.4–3.4 kHz "ring" band highlighted so you can watch resonance appear as you adjust. |
+| **Ring trainer** | A four-stage twang ladder that actually trains resonance instead of describing it. Targets are set at *your* baseline +6 dB and re-measured per vowel; the vowels run ring-easy to ring-hard; the live meter is withdrawn at stage 3 and knowledge-of-results thinned to 55% at stage 4, because that is the schedule that produced retention rather than a good in-session score. |
 | **Exercises** | Note matching, **blind** matching (trace hidden until after — the mode that makes gains stick), sirens, and interval leaps. Calibrates to your comfortable range first. |
 | **Compare** | Load a reference melody — record it yourself or import an isolated-vocal file — sing it back, and see both contours DTW-aligned with a transposition-tolerant score. |
 | **Warm-up** | Guided straw-phonation (SOVT) routine with a before/after spectral measurement so you can watch it work. |
@@ -37,8 +38,8 @@ thresholds, caveats) and **[STYLE-GUIDE.md](STYLE-GUIDE.md)** (genre acoustics).
 Plain HTML + vanilla JS, no dependencies, no build:
 
 ```
-index.html            the whole app: one page, seven modes
-                       (home / tuner / report / drills / compare / warm-up / styles),
+index.html            the whole app: one page, eight modes
+                       (home / tuner / report / ring / drills / compare / warm-up / styles),
                        hash-routed with animated transitions; the mic is granted
                        once and stays live across modes
 tuner.html ...         redirect stubs so old deep links keep working
@@ -46,7 +47,10 @@ style.css
 js/dsp.js              McLeod pitch detection + Viterbi decode, FFT, voice metrics, DTW, WAV
 js/mic.js              iOS-safe mic capture, PCM recorder, tone player
 js/ui.js               canvas helpers, localStorage
+js/practice.js         motor-learning practice schedules: blocked→random structure,
+                       KR fading, retention probes (see RESEARCH.md §8)
 tests/dsp.test.js      node tests/dsp.test.js
+tests/practice.test.js node tests/practice.test.js
 tests/eval-pitch.js    synthetic pitch-accuracy harness
 tests/eval-real.js     vocadito (real annotated singing) harness
 tests/eval-mir1k.js    MIR-1K harness
@@ -62,12 +66,18 @@ holds a screen wake lock during sessions.
 ## Tests
 
 ```bash
-node tests/dsp.test.js
+node tests/dsp.test.js && node tests/practice.test.js
 ```
 
 Synthesized-signal tests: pitch accuracy within 10¢ across 82–880 Hz, octave-error resistance,
 vibrato rate/extent extraction, HNR separation of clean vs noisy tone, SPR separation of ringy vs
-dull spectra, DTW transposition detection, plus a syntax check of every page's inline script.
+dull spectra (including that SPR is invariant to a constant gain, and that the live and offline
+paths return the identical number), DTW transposition detection, plus a syntax check of every
+page's inline script.
+
+The practice-schedule tests assert the properties that make the schedule an intervention rather
+than decoration: KR really is withheld at the stated proportion, random stages really do avoid
+back-to-back repeats, and retention probes really are unfed and really don't move stage progress.
 
 ## Privacy
 

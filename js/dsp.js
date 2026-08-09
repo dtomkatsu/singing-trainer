@@ -631,6 +631,42 @@ const Metrics = (() => {
   }
 
   /**
+   * SPR — singing power ratio (Omori et al. 1996, J Voice 10(3):228–235):
+   * strongest spectral peak in 2–4 kHz minus strongest in 0–2 kHz, in dB.
+   *
+   * Split out of resonance() so the live Ring meter and the offline Voice
+   * Report compute the identical number and cannot drift apart — a trainer
+   * whose target is "your baseline + 6 dB" is meaningless if the two paths
+   * disagree about what your baseline was.
+   *
+   * Being a *difference between two dB peaks of the same frame*, SPR is
+   * unchanged by any constant gain applied ahead of it. That is precisely why
+   * it is the one tone metric worth training against on iOS, where auto-gain
+   * cannot be fully switched off and absolute levels are untrustworthy.
+   *
+   * @param db     magnitude spectrum in dB (20log10|X| and 10log10|X|² both
+   *               work — only the difference is used)
+   * @param binHz  Hz per bin
+   * @param opts   {floorDb} frames whose low-band peak falls under this are
+   *               treated as silence and return null
+   * @returns dB, or null if the frame has no usable low-band energy
+   */
+  function sprFromDb(db, binHz, opts = {}) {
+    const peakIn = (lo, hi) => {
+      let p = -Infinity;
+      const i0 = Math.max(0, Math.ceil(lo / binHz));
+      const i1 = Math.min(db.length - 1, Math.floor(hi / binHz));
+      for (let i = i0; i <= i1; i++) if (db[i] > p) p = db[i];
+      return p;
+    };
+    const low = peakIn(50, 2000);
+    if (!isFinite(low)) return null;
+    if (opts.floorDb != null && low < opts.floorDb) return null;
+    const high = peakIn(2000, 4000);
+    return isFinite(high) ? high - low : null;
+  }
+
+  /**
    * Resonance measures from averaged spectrum over voiced frames:
    *  - SPR (singing power ratio, Omori 1996): peak dB in 2–4 kHz minus
    *    peak dB in 0–2 kHz. Closer to 0 = more ring; very negative = dull.
@@ -658,20 +694,13 @@ const Metrics = (() => {
     const db = new Float32Array(acc.length);
     for (let i = 0; i < acc.length; i++) db[i] = 10 * Math.log10(acc[i] / used + 1e-20);
 
-    const peakIn = (lo, hi) => {
-      let p = -Infinity;
-      for (let i = Math.ceil(lo / binHz); i <= Math.min(db.length - 1, Math.floor(hi / binHz)); i++) {
-        if (db[i] > p) p = db[i];
-      }
-      return p;
-    };
     const energyIn = (lo, hi) => {
       let e = 0;
       for (let i = Math.ceil(lo / binHz); i <= Math.min(acc.length - 1, Math.floor(hi / binHz)); i++) e += acc[i] / used;
       return e;
     };
 
-    const spr = peakIn(2000, 4000) - peakIn(50, 2000);
+    const spr = sprFromDb(db, binHz);
     const er3k = 10 * Math.log10((energyIn(2400, 3400) + 1e-20) / (energyIn(50, 5000) + 1e-20));
 
     // Spectral tilt: octave-band energies 300..4800, linear fit dB vs octave#.
@@ -804,7 +833,7 @@ const Metrics = (() => {
     return out;
   }
 
-  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, cpps, vibrato, resonance };
+  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, cpps, vibrato, resonance, sprFromDb };
 })();
 
 /* ------------------------------------------------------------------ *

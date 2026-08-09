@@ -123,6 +123,28 @@ const Mic = (() => {
     return ctx.sampleRate / 2 / arr.length;              // Hz per bin
   }
 
+  /**
+   * Frequency data in real dB, for measurements rather than drawing.
+   *
+   * getByteFrequencyData rescales into 0–255 between the analyser's min/max
+   * decibels, which is fine for a bar chart but destroys the units — you
+   * cannot subtract two of those numbers and call the result dB. SPR is
+   * defined as a difference of dB peaks, so the Ring trainer needs the float
+   * form. The analyser's windowing and smoothing are constant offsets that
+   * cancel in that subtraction.
+   *
+   * @param arr Float32Array of length binCount()
+   * @returns Hz per bin, or 0 if the mic isn't up
+   */
+  function liveSpectrumDb(arr) {
+    if (!analyser) return 0;
+    analyser.getFloatFrequencyData(arr);
+    return ctx.sampleRate / 2 / arr.length;
+  }
+
+  /** Bins in a live spectrum frame — allocate your array to this. */
+  function binCount() { return analyser ? analyser.frequencyBinCount : 0; }
+
   function beginRecording() {
     recChunks = [];
     recording = true;
@@ -181,7 +203,7 @@ const Mic = (() => {
   }
 
   return {
-    start, resume, info, livePitch, liveSpectrum,
+    start, resume, info, livePitch, liveSpectrum, liveSpectrumDb, binCount,
     beginRecording, endRecording, isRecording, playPcm, context,
     toneOn, toneSet, toneOff,
   };
