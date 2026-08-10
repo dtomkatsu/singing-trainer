@@ -223,6 +223,18 @@ metrics are avoided; the HNR and jitter values are frame-based estimates, not Pr
 clinical measures; SPR is vowel/pitch-dependent, so the report asks for the same task every time
 (sustained /a/, comfortable pitch, medium-loud).
 
+**Noise rejection.** The offline report's `resonance()` only accumulates spectrum frames the pitch
+tracker already scored as voiced (`track.f0[k] > 0`, which passed both an RMS floor and an NSDF
+clarity threshold — §1's pitch detector, not a separate check), so ambient noise is excluded before
+SPR is ever computed. The Ring trainer's live meter originally skipped that: it gated a frame on
+nothing but a −85 dB low-band-peak floor, 15 dB above the AnalyserNode's default −100 dB noise
+floor — clearable by ordinary room tone. Measured against simulated room noise through the real
+capture pipeline (Aug 2026): the floor-only gate passed 20/20 frames and read a *silent room* at
+−7.6 to −9.3 dB SPR, inside Omori's "strong ring" band. Fixed by gating each live frame on
+`Mic.livePitch()` (f0 > 0, clarity > 0.5) before its spectrum counts — the same test the tuner and
+drills already use, and the property `tests/dsp.test.js`'s "white noise → unvoiced or low clarity"
+locks in. Same fix against a real sung tone: 15/15 frames passed, unchanged SPR.
+
 ## 11. Style-specific singing (R&B, pop, classical…)
 
 See **[STYLE-GUIDE.md](STYLE-GUIDE.md)** for the style research: what acoustically defines R&B

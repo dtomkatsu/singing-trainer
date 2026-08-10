@@ -831,19 +831,31 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
    * sure a starved frame loop still settles the promise instead of wedging the
    * button on `busy` forever.
    *
-   * @returns {{samples, frames, elapsed}}
+   * Each frame is gated on actual voicing — Mic.livePitch()'s f0 + clarity,
+   * the same test the tuner and drills already run — before its spectrum is
+   * allowed into the SPR sample set. This was missing in the first cut: a
+   * frame was accepted whenever its low-band peak cleared a −85 dB floor,
+   * which is only 15 dB above the AnalyserNode's default −100 dB noise floor.
+   * Ordinary room tone routinely clears that on a phone mic, so a "silent"
+   * baseline was quietly measuring the room rather than gating it out. A
+   * frame that is periodic *and* confidently pitched is a much harder thing
+   * for ambient noise to fake than one that merely has some energy somewhere
+   * below 2 kHz — see tests/dsp.test.js "white noise -> unvoiced or low clarity",
+   * which is the property this gate depends on.
+   *
+   * @returns {{samples, frames, voicedFrames, elapsed}}
    */
   function capture(secs, showLive, base) {
     return new Promise((resolve) => {
       const spec = new Float32Array(Mic.binCount() || 1024);
       const out = [];
       const t0 = performance.now() / 1000;
-      let frames = 0, settled = false;
+      let frames = 0, voicedFrames = 0, settled = false;
 
       const finish = () => {
         if (settled) return;
         settled = true; clearTimeout(guard);
-        resolve({ samples: out, frames, elapsed: performance.now() / 1000 - t0 });
+        resolve({ samples: out, frames, voicedFrames, elapsed: performance.now() / 1000 - t0 });
       };
       const guard = setTimeout(finish, secs * 1000 + 2000);
 
@@ -851,16 +863,20 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (settled) return;
         const t = performance.now() / 1000 - t0;
         frames++;
+        const pitch = Mic.livePitch();
         const binHz = Mic.liveSpectrumDb(spec);
-        if (binHz) {
-          const spr = Metrics.sprFromDb(spec, binHz, { floorDb: -85 });
+        const voiced = pitch && pitch.f0 > 0 && pitch.clarity > 0.5;
+        let spr = null;
+        if (voiced && binHz) {
+          voicedFrames++;
+          spr = Metrics.sprFromDb(spec, binHz, { floorDb: -85 });
           if (spr != null) out.push({ t, v: spr });
-          if (showLive && base != null) {
-            $('ringMeterBar').style.width = (spr == null ? 0 : pctOf(spr, base)).toFixed(0) + '%';
-            $('ringNow').textContent = spr == null ? '—' : spr.toFixed(1) + ' dB';
-          }
         }
-        if (showLive) drawRing(out, secs, base);
+        if (showLive) {
+          $('ringMeterBar').style.width = (spr == null ? 0 : pctOf(spr, base)).toFixed(0) + '%';
+          $('ringNow').textContent = spr == null ? '—' : spr.toFixed(1) + ' dB';
+          drawRing(out, secs, base);
+        }
         if (t < secs) requestAnimationFrame(step); else finish();
       };
       requestAnimationFrame(step);
@@ -868,13 +884,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   }
 
   /**
-   * Distinguish "you were quiet" from "this tab wasn't being painted" — the
-   * two produce an identical empty take, and telling someone to sing louder
-   * when the real problem is a backgrounded tab sends them chasing their voice.
+   * Distinguish "the browser throttled this tab", "you never actually sang",
+   * and "you sang but not long/clean enough" — three failures that all leave
+   * scoreTrial() with nothing to score, but only one of them is fixed by
+   * singing louder.
    */
   const shortfall = (cap) => cap.frames < 30
     ? 'the browser throttled this tab mid-take — keep the app in the foreground (or add it to your home screen) and try again.'
-    : 'didn’t hear enough steady tone — hold the sound longer, or move the phone closer.';
+    : cap.voicedFrames < 5
+    ? 'didn’t detect a sung pitch — that take was silence or background noise, not gated out as "quiet" so much as never recognized as a voice. Get closer to the mic and make sure you’re actually sounding a note.'
+    : 'didn’t hear enough steady tone — hold the sound longer without breaks.';
 
   /**
    * Frames before 0.8 s are onset, not tone — a scoop or a glottal attack can

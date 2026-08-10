@@ -224,6 +224,37 @@ console.log('Metrics.sprFromDb');
      'resonance().sprDb is exactly sprFromDb() on the same spectrum');
 }
 
+/* ---------- Ring trainer: live frames must be gated on voicing, not just a dB floor ---------- */
+console.log('room noise vs a floor-only SPR gate');
+{
+  // Regression test for a real bug: the Ring trainer's live capture loop
+  // originally accepted any spectrum frame whose low-band peak cleared
+  // floorDb (-85 dB), with no check that a voice was actually present. That
+  // floor sits only 15 dB above the AnalyserNode's default -100 dB noise
+  // floor, so ordinary room tone clears it — a "silent" baseline take was
+  // quietly measuring the room. The fix gates each live frame on
+  // Pitch.detect() first (f0 > 0 && clarity > 0.5), same as the tuner and
+  // drills. This test pins both halves down: the old floor alone would have
+  // let this signal through, and the voicing gate correctly rejects it.
+  const binHz = 23.4375;
+  const spec = new Float32Array(256).fill(-90);
+  // A plausible room-tone spectrum: broad low-frequency energy (HVAC/traffic
+  // rumble), nothing resembling a voice's harmonic comb.
+  for (let i = 1; i < 60; i++) spec[i] = -55 - i * 0.3 + (i % 7) * 2;
+  ok(Metrics.sprFromDb(spec, binHz, { floorDb: -85 }) !== null,
+     'a floor-only gate lets a room-noise spectrum through (this was the bug)');
+
+  const noise = new Float32Array(2048).map((_, i) => {
+    // Deterministic broadband "noise": a few dozen unrelated, non-harmonic
+    // partials rather than Math.random(), so the test is reproducible.
+    let s = 0;
+    for (let k = 1; k <= 40; k++) s += Math.sin(2 * Math.PI * (131 * k * 1.0173) * i / SR + k);
+    return 0.02 * s / 40;
+  });
+  const r = Pitch.detect(noise, SR);
+  ok(r.f0 <= 0 || r.clarity <= 0.5, 'the same class of signal fails the voicing gate the live loop now applies');
+}
+
 /* ---------- DTW ---------- */
 console.log('Dtw.align');
 {
