@@ -68,7 +68,19 @@ const Mic = (() => {
     // iOS puts the context in a non-standard "interrupted" state after
     // calls / screen lock; resume() only works from a user gesture, so
     // also retry on the next tap anywhere.
-    ctx.addEventListener('statechange', () => { if (ctx.state !== 'running') needResume = true; });
+    //
+    // thisCtx pins the specific instance this listener belongs to, rather
+    // than reading the closure's `ctx` at fire time. A context's own
+    // 'statechange' (e.g. running -> closed) can still be queued after
+    // something has already replaced `ctx` — teardown()/pauseForPlayback()
+    // do exactly that on every preview-playback cycle — and without the pin
+    // this threw on the now-null or now-different `ctx`, and would set
+    // needResume from a context nobody is using anymore even if it didn't.
+    const thisCtx = ctx;
+    ctx.addEventListener('statechange', () => {
+      if (thisCtx !== ctx) return;
+      if (thisCtx.state !== 'running') needResume = true;
+    });
     await wakeLock();
     source = ctx.createMediaStreamSource(stream);
     analyser = ctx.createAnalyser();
@@ -181,6 +193,87 @@ const Mic = (() => {
   const TWANG_FX = { hz: 2900, q: 1.1, db: 10 };
 
   /**
+   * Stop the mic and close its context, without touching the worklet blob URL
+   * or the wake lock (both are cheap to keep and independent of this). Leaves
+   * the module in the same state a fresh page load would be in before start()
+   * is first called — start()'s "already live" guard depends on ctx/stream
+   * actually being null, not just closed/stopped.
+   */
+  async function teardown() {
+    try { if (recNode && recNode.port) recNode.port.postMessage('stop'); } catch (_) {}
+    recording = false; recChunks = null;
+    if (stream) { try { stream.getTracks().forEach((t) => t.stop()); } catch (_) {} }
+    const closing = ctx;
+    ctx = null; stream = null; source = null; analyser = null;
+    recNode = null; workletReady = false; liveBuf = null;
+    // Await this (matching start()'s own ctx.close() above) so the old
+    // context's teardown is genuinely finished, not just requested, before
+    // the caller starts a new one on top of it.
+    if (closing) { try { await closing.close(); } catch (_) {} }
+  }
+
+  /**
+   * Play a take with the mic fully released first, then re-acquired after.
+   *
+   * Why this exists: once getUserMedia is live, iOS puts the page's audio
+   * session in "play-and-record" mode, which routes ALL of this context's
+   * output — including plain review playback, not just the twang preview —
+   * to the earpiece instead of the speaker. There is no supported way to
+   * override that while a mic track stays open: the Audio Session spec says
+   * plainly that setting `audioSession.type` to anything but
+   * `play-and-record`/`auto` ends any active track, which would trade quiet
+   * playback for broken mic capture. So instead of fighting the session, this
+   * drops out of it — release the mic, play back on an unrelated context with
+   * no input attached, then reacquire via the normal start() path once
+   * playback ends.
+   *
+   * UNVERIFIED on real iOS hardware. This is the best-supported reading of
+   * the platform's routing rules, not a confirmed fix — nothing in this dev
+   * environment can reproduce an iPhone's earpiece/speaker hardware routing.
+   * What IS exercised (in the browser pane) is the state machine: full
+   * teardown, playback on a context genuinely free of any mic input, and a
+   * clean reacquire afterward. If the reacquire's ctx.resume() gets silently
+   * suspended — the same iOS quirk start() already documents — the existing
+   * pointerdown listener above will retry it on the user's next tap, same as
+   * any other interruption.
+   *
+   * @returns {reacquired: boolean} — false means the caller should fall back
+   *          to the normal "Enable microphone" gate rather than trust the mic
+   *          is still live.
+   */
+  async function pauseForPlayback(pcm, sampleRate, fx) {
+    if (recording) return { reacquired: !!ctx };   // never interrupt a live take
+    await teardown();
+
+    await new Promise((resolve) => {
+      const pctx = new (window.AudioContext || window.webkitAudioContext)();
+      const buf = pctx.createBuffer(1, pcm.length, sampleRate);
+      buf.copyToChannel(pcm, 0);
+      const src = pctx.createBufferSource();
+      src.buffer = buf;
+      const trim = pctx.createGain(); trim.gain.value = 0.8;
+      if (fx) {
+        const f = fx === true ? TWANG_FX : fx;
+        const peak = pctx.createBiquadFilter();
+        peak.type = 'peaking';
+        peak.frequency.value = f.hz; peak.Q.value = f.q; peak.gain.value = f.db;
+        src.connect(peak).connect(trim).connect(pctx.destination);
+      } else {
+        src.connect(trim).connect(pctx.destination);
+      }
+      let settled = false;
+      const done = () => { if (settled) return; settled = true; try { pctx.close(); } catch (_) {} resolve(); };
+      src.onended = done;
+      // Backstop: don't let a stalled/hidden tab hang the reacquire forever.
+      setTimeout(done, Math.ceil((pcm.length / sampleRate) * 1000) + 2000);
+      src.start();
+    });
+
+    try { await start(); return { reacquired: !!ctx && ctx.state === 'running' }; }
+    catch (_) { return { reacquired: false }; }
+  }
+
+  /**
    * Play a Float32 buffer (e.g., a take) through the context.
    * @param fx  falsy = plain; true or {hz,q,db} = through the twang peak
    */
@@ -251,7 +344,7 @@ const Mic = (() => {
   }
 
   return {
-    start, resume, info, livePitch, liveSpectrum, liveSpectrumDb, binCount,
+    start, resume, info, livePitch, liveSpectrum, liveSpectrumDb, binCount, pauseForPlayback,
     beginRecording, endRecording, isRecording, playPcm, context,
     toneOn, toneSet, toneOff,
   };

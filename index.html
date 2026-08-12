@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
 
@@ -129,7 +129,7 @@
           <button id="playRingBtn">🔔 With ring</button>
           <button id="againBtn">↻ New take</button>
         </div>
-        <p class="small dim" style="margin:6px 0 0">“With ring” replays the same take through a single +10 dB peak at ~2.9 kHz — your voice with the singer’s-formant resonance added. That’s the sound the <a href="#ring">Ring trainer</a> chases acoustically. (Playback only: altering what you hear <i>while</i> singing measurably perturbs the voice.)</p>
+        <p class="small dim" id="ringExplainer" style="margin:6px 0 0">“With ring” replays the same take through a single +10 dB peak at ~2.9 kHz — your voice with the singer’s-formant resonance added. That’s the sound the <a href="#ring">Ring trainer</a> chases acoustically. (Playback only: altering what you hear <i>while</i> singing measurably perturbs the voice.)</p>
       </div>
       <div class="card">
         <h2 style="margin-top:0">Measurements</h2>
@@ -406,10 +406,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=12"></script>
-<script src="js/mic.js?v=12"></script>
-<script src="js/ui.js?v=12"></script>
-<script src="js/practice.js?v=12"></script>
+<script src="js/dsp.js?v=14"></script>
+<script src="js/mic.js?v=14"></script>
+<script src="js/ui.js?v=14"></script>
+<script src="js/practice.js?v=14"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -518,6 +518,35 @@ const App = (() => {
   return { register, show, enableMic, init, get micOn() { return micOn; }, get current() { return current; } };
 })();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Shared by every "play this take" button (Report's plain/with-ring, Ring's
+ * plain/with-ring): routes playback through Mic.pauseForPlayback so iOS
+ * doesn't send it to the earpiece — see that function's doc comment for why
+ * a mic release-and-reacquire is the only viable route to correct routing.
+ *
+ * disableEls should include anything that starts a new trial or recording —
+ * the mic is genuinely down for the few seconds this takes, so those need to
+ * be unusable rather than racing a not-yet-live analyser. On the (expected
+ * rare, unverified-how-rare) case reacquire fails, this falls back to the
+ * app's normal recovery path — reveal "Enable microphone" — rather than
+ * leaving the page in a state that looks live but silently isn't.
+ */
+async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
+  const { statusEl, disableEls = [] } = opts;
+  const prevHtml = statusEl ? statusEl.innerHTML : '';
+  disableEls.forEach((el) => { el.disabled = true; });
+  if (statusEl) statusEl.innerHTML = 'releasing mic for playback…';
+  const { reacquired } = await Mic.pauseForPlayback(pcm, sampleRate, fx);
+  disableEls.forEach((el) => { el.disabled = false; });
+  if (reacquired) {
+    if (statusEl) statusEl.innerHTML = prevHtml;
+  } else {
+    document.body.classList.remove('mic-on');
+    document.getElementById('micChip').hidden = true;
+    if (statusEl) statusEl.innerHTML = 'mic didn’t reconnect after playback — tap “Enable microphone” above to continue.';
+  }
+}
 </script>
 
 <script>
@@ -784,8 +813,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     ctx.stroke();
   }
 
-  $('playBtn').addEventListener('click', () => { if (take) Mic.playPcm(take.pcm, take.sampleRate); });
-  $('playRingBtn').addEventListener('click', () => { if (take) Mic.playPcm(take.pcm, take.sampleRate, null, true); });
+  const reportPreviewOpts = () => ({
+    statusEl: $('ringExplainer'),
+    disableEls: [$('playBtn'), $('playRingBtn'), $('againBtn'), $('recBtn')].filter(Boolean),
+  });
+  $('playBtn').addEventListener('click', () => { if (take) previewPlayback(take.pcm, take.sampleRate, false, reportPreviewOpts()); });
+  $('playRingBtn').addEventListener('click', () => { if (take) previewPlayback(take.pcm, take.sampleRate, true, reportPreviewOpts()); });
   $('againBtn').addEventListener('click', () => { $('results').style.display = 'none'; window.scrollTo(0, 0); });
 
   App.register('report', {
@@ -866,8 +899,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     $('ringABRow').style.display = lastTake ? '' : 'none';
     $('ringABHint').style.display = lastTake ? '' : 'none';
   }
-  $('ringPlayPlain').addEventListener('click', () => { if (lastTake) Mic.playPcm(lastTake.pcm, lastTake.sampleRate); });
-  $('ringPlayRing').addEventListener('click', () => { if (lastTake) Mic.playPcm(lastTake.pcm, lastTake.sampleRate, null, true); });
+  const ringPreviewOpts = () => ({
+    statusEl: $('ringResult'),
+    disableEls: [$('ringGo'), $('ringHear'), $('ringPlayPlain'), $('ringPlayRing'), $('calBtn')].filter(Boolean),
+  });
+  $('ringPlayPlain').addEventListener('click', () => { if (lastTake) previewPlayback(lastTake.pcm, lastTake.sampleRate, false, ringPreviewOpts()); });
+  $('ringPlayRing').addEventListener('click', () => { if (lastTake) previewPlayback(lastTake.pcm, lastTake.sampleRate, true, ringPreviewOpts()); });
 
   /** One staircase per vowel, rehydrated from the stored level. */
   const bars = {};

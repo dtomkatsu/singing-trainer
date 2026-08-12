@@ -187,6 +187,29 @@ phonation (Leydon 2003; Lester-Smith et al. 2023/24 — the same evidence that k
 out of vibrato trials), and browser/Bluetooth latency would add its own artefacts. You hear the
 target on the recording, then go make it acoustically with the meter.
 
+**Earpiece routing, and why the fix is a release/reacquire rather than a session-type override.**
+Once getUserMedia is live, iOS puts the page's audio session in `play-and-record` mode, which routes
+*all* of that context's output — plain playback included, not just the twang preview — to the
+earpiece instead of the speaker. The obvious fix, temporarily setting `navigator.audioSession.type`
+to `playback` for the few seconds of a review, is not safe: the Audio Session spec states plainly
+that setting `type` to anything but `play-and-record`/`auto` ends any active MediaStreamTrack, which
+would trade quiet playback for broken mic capture. `Mic.pauseForPlayback()` instead drops out of the
+session entirely — stop the mic, play back on a context with no input attached, reacquire via the
+normal `start()` path once playback ends — and falls back to the app's own "Enable microphone" gate
+if reacquire fails, rather than leaving the page looking live while it silently isn't.
+
+**UNVERIFIED on real iOS hardware.** This dev environment cannot reproduce an iPhone's
+earpiece/speaker routing decision, so the *routing outcome* is a plausible reading of the platform's
+rules, not a confirmed fix. What tests here confirmed instead is the mechanism around it: six
+consecutive teardown → reacquire cycles each measured exactly one `getUserMedia` call and a live mic
+afterward; the concurrent-recording guard correctly refuses to interrupt a take in progress; and the
+failure path (a forced reacquire rejection) correctly falls back to the "Enable microphone" gate with
+buttons re-enabled rather than left stuck. One real bug surfaced by that testing and fixed before
+shipping: `teardown()`'s `ctx.close()` wasn't awaited, so a closed context's own queued `statechange`
+event could fire after `ctx` had already been reassigned — its listener closed over the mutable
+variable rather than the instance, and threw on the now-null or now-different value. Fixed by pinning
+each listener to the specific context instance it belongs to, and by awaiting `close()` properly.
+
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
 - Mechanism (Titze 2006, *JSLHR*): a semi-occluded vocal tract raises intraoral pressure and
