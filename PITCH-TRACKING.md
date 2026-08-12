@@ -86,6 +86,15 @@ singing, and voices near the 60/1200 Hz edges. Note that the app's primary task
 — sustained /a/, comfortable pitch, medium-loud, close mic — is the *best* case
 for autocorrelation and therefore the smallest possible gap.
 
+**Addendum, Aug 2026:** surveyed the newer crop (FCPE and others from the 2025
+SVC literature, claiming real-time factors as low as 0.0062) while scoping
+whether "cutting-edge tech" had anything to offer resonance training. None of
+it changes the verdict above — the blockers are the deployment constraints
+(no SharedArrayBuffer on GitHub Pages, no-build-step architecture) and the
+HNR/time-resolution/quantization regressions, not raw model speed, and a
+faster model doesn't touch any of those. See RESEARCH.md §4d for the fuller
+survey (formant feedback, neural voice conversion) this came out of.
+
 ---
 
 ## 3. What shipped instead

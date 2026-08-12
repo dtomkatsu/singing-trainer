@@ -210,6 +210,63 @@ event could fire after `ctx` had already been reassigned — its listener closed
 variable rather than the instance, and threw on the now-null or now-different value. Fixed by pinning
 each listener to the specific context instance it belongs to, and by awaiting `close()` properly.
 
+## 4d. Surveyed but not built — the resonance-training roadmap
+
+Scoped while answering "what cutting-edge tech could help with R&B resonance" (Aug 2026). §4c's
+twang preview is what came out of it; everything else here is documented so the reasoning isn't
+re-derived from scratch next time it comes up, and so a future "why doesn't this app just do X"
+has an answer on record.
+
+**Real-time formant/resonance-tuning feedback has direct supporting evidence, with the familiar
+retention catch.** Jeanneteau, Hanna, Almeida, Smith & Wolfe 2022 (*Logoped Phoniatr Vocol*, PMID
+33121295): 6 of 8 sopranos learned to shift their second vocal-tract resonance (R2) across several
+semitones relative to f0, tracking a real-time visual display, inside a **single one-hour session**.
+But once the display was removed, only 2 of 8 spontaneously kept using the tuning; a third gained it
+only after extensive further practice. That is the guidance hypothesis (§2) measured on resonance
+itself, not just pitch or twang — reinforcing, not just paralleling, the practice-schedule design
+already built for the Ring trainer (`js/practice.js`). **[moderate]** Their measurement method
+(broadband excitation at the lips) is hardware the app doesn't have; a browser equivalent would mean
+**LPC formant tracking**, which is also what H1–H2's Iseli–Alwan correction needs (§4b) and what
+would let the app verify belt/legit registration directly via F1:2f₀ rather than infer it from
+H1–H2. Real, substantial DSP work, and fragile at high f0 where harmonics undersample the spectral
+envelope — the single biggest thing on this list, deferred rather than rejected.
+
+**Neural singing-voice conversion (SVC) could manufacture a better training stimulus than any
+external reference, if it ran offline.** The SVCC 2025 challenge benchmarked 33 systems; current
+zero-shot models (S²Voice, the 2025 winner; HQ-SVC; REF-VC, 4-step fast inference) convert timbre
+while **preserving the singer's own pitch**, and VibE-SVC controls vibrato style independently of
+the rest. Why it matters here specifically: §3's own-voice-timbre-matching evidence (Hutchins et al.
+2014; Pfordresher & Mantell 2014) says people match best against *their own voice* — an SVC-converted
+"R&B-styled you" would be a better-matched Compare-mode reference than any other singer's track,
+exactly the argument §4c already makes for the twang preview, at a scale a single EQ peak can't
+reach. None of this runs in a static no-build browser page; it would follow the existing Demucs
+stem-separation precedent from §9 — an offline step outside the app, importing the result as a
+Compare reference. **Untested as pedagogy: no study has looked at SVC-converted self-references as
+training stimuli. [E]**, extrapolation from the own-timbre-matching finding, not a finding itself.
+
+**Neural pitch trackers (CREPE, FCPE) were re-checked and still don't clear the bar.** Already
+evaluated once in PITCH-TRACKING.md §2 with hard numbers (CREPE-tiny: 60–110 s to analyze a 30 s
+Compare take on iPhone WASM, plus it breaks the HNR/clarity pipeline and worsens time resolution on
+exactly the fast-vibrato/melisma material that needs it most). The newer crop (FCPE and others,
+claiming real-time factors near 0.006) doesn't change that verdict — the blockers are GitHub Pages
+having no `SharedArrayBuffer` and the no-build-step architecture, not raw model speed. See
+PITCH-TRACKING.md's Aug 2026 addendum.
+
+**Three directions ruled out, with reasons worth keeping on record:**
+
+- **Nasality/nasalance.** Clinically measured with an oral/nasal mic split (a nasometer). A single
+  phone mic inferring nasal antiformants from spectral shape alone is fragile and vowel-dependent
+  enough not to trust as a number — which is why the app coaches this behaviourally (pinch the nose;
+  if the sound barely changes, the brightness is twang, not nasal leakage) rather than pretending to
+  meter it.
+- **True cycle-accurate jitter/shimmer.** Needs glottal closure instant (GCI) detection (e.g.
+  SEDREAMS/YAGA-class algorithms) — a real DSP undertaking, and one that would need EGG-validated
+  data to trust, which the app has no way to collect. The existing frame-to-frame proxies are
+  already labelled as proxies, not clinical numbers (§10); chasing "real" jitter without validation
+  data risks manufacturing false precision rather than fixing anything.
+- **Absolute loudness/dynamics.** Already ruled out elsewhere (§12) — iOS won't allow AGC to be
+  fully disabled — and nothing in this pass changed that.
+
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
 - Mechanism (Titze 2006, *JSLHR*): a semi-occluded vocal tract raises intraoral pressure and
@@ -371,6 +428,15 @@ differs from classical resonance strategy, and the drill progressions the Styles
 - Reference audio import: Safari decodes m4a/mp3/wav (no ogg). The last reference persists in
   IndexedDB; note Safari evicts site storage after 7 days of no use unless the app is added to the
   home screen.
+- **Reference-tone loudness, measured rather than guessed.** Reported as barely audible; the
+  triangle-wave player was running at gain 0.25, which renders at **−16.8 dBFS RMS** (measured via
+  `OfflineAudioContext`). Raised to 0.9 → **−5.7 dBFS, +11 dB**, with no clipping (peak 0.896 on a
+  single oscillator). Kept the triangle waveform rather than switching to something louder-sounding
+  like a sawtooth, since §3's matching evidence specifically wants a harmonic-rich, voice-like tone —
+  the fix was loudness, not timbre. This is also the first place the **earpiece-routing** issue
+  showed up: once the mic is live, iOS routes this same context's output to the earpiece regardless
+  of gain, which is a platform routing decision no amount of `TONE_GAIN` fixes — full investigation
+  and the eventual release/reacquire fix are in §4c.
 
 ---
 
@@ -388,7 +454,9 @@ Prame 1994/1997 · *J. Voice* vibrato-genre study 2025 · Dromey, Carter & Hopki
 Moorcroft & Kenny 2015 · Mürbe et al. 2007 · Nix et al. 2016 · Leydon, Bauer & Larson 2003 ·
 Lester-Smith et al. 2023/2024 · Steinhauer & Eichhorn 2025 · Salmoni, Schmidt & Walter 1984 ·
 Sundberg & Thalén 2010 · Titze, Story et al. 2003 · Jelinger et al. 2024 · Perta et al. 2021 ·
-Feng & Howard 2023 · Rossiter & Howard 1996 · Kaernbach 1991 · Driskell, Copper & Moran 1994 ·
+Feng & Howard 2023 · Rossiter & Howard 1996 · Kaernbach 1991 ·
+Jeanneteau, Hanna, Almeida, Smith & Wolfe 2022 (resonance-tuning feedback) ·
+SVCC 2025 challenge (S²Voice, HQ-SVC, REF-VC, VibE-SVC) · Driskell, Copper & Moran 1994 ·
 Silveira & Gavin 2016 · Boersma 1993 · de Cheveigné & Kawahara 2002 (YIN) · Mauch & Dixon 2014 (pYIN) ·
 Kim et al. 2018 (CREPE) · Tsai & Lee 2012 · Salamon & Gómez 2012 · 30-year singing-assessment survey
 (arXiv 2601.12153, 2026).
