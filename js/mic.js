@@ -165,13 +165,44 @@ const Mic = (() => {
   function isRecording() { return recording; }
   function context() { return ctx; }
 
-  /** Play a Float32 buffer (e.g., a take) through the context. */
-  function playPcm(pcm, sampleRate, onended) {
+  /**
+   * The "twang preview" voicing: a single peaking EQ centred in the singer's-
+   * formant band. One filter, on purpose — this is a demonstration of the
+   * source-filter idea (same voice, one resonance peak added), not a mastering
+   * chain, and a single documented peak is explainable and measurable. Centre
+   * and width cover Sundberg's 2.4–3.4 kHz band; +10 dB sits inside Omori's
+   * 5–10 dB singer/non-singer SPR gap.
+   *
+   * Playback-only by design: altered LIVE auditory feedback measurably
+   * perturbs phonation (Leydon 2003; Lester-Smith 2023/24), and iOS adds
+   * latency that makes live monitoring unusable anyway. You hear the target
+   * on the recording, then go make it acoustically.
+   */
+  const TWANG_FX = { hz: 2900, q: 1.1, db: 10 };
+
+  /**
+   * Play a Float32 buffer (e.g., a take) through the context.
+   * @param fx  falsy = plain; true or {hz,q,db} = through the twang peak
+   */
+  function playPcm(pcm, sampleRate, onended, fx) {
     if (!ctx || !pcm.length) return null;
     const buf = ctx.createBuffer(1, pcm.length, sampleRate);
     buf.copyToChannel(pcm, 0);
     const src = ctx.createBufferSource();
-    src.buffer = buf; src.connect(ctx.destination);
+    src.buffer = buf;
+    // Identical pad on both paths: it exists to give the +10 dB peak headroom
+    // against clipping, and it must not differ between plain and twanged or
+    // the A/B becomes a loudness test instead of a timbre test.
+    const trim = ctx.createGain(); trim.gain.value = 0.8;
+    if (fx) {
+      const f = fx === true ? TWANG_FX : fx;
+      const peak = ctx.createBiquadFilter();
+      peak.type = 'peaking';
+      peak.frequency.value = f.hz; peak.Q.value = f.q; peak.gain.value = f.db;
+      src.connect(peak).connect(trim).connect(ctx.destination);
+    } else {
+      src.connect(trim).connect(ctx.destination);
+    }
     if (onended) src.onended = onended;
     src.start();
     return src;

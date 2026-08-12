@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 
@@ -126,8 +126,10 @@
         <canvas id="takeTrace"></canvas>
         <div class="btnrow">
           <button id="playBtn">▶ Play take</button>
+          <button id="playRingBtn">🔔 With ring</button>
           <button id="againBtn">↻ New take</button>
         </div>
+        <p class="small dim" style="margin:6px 0 0">“With ring” replays the same take through a single +10 dB peak at ~2.9 kHz — your voice with the singer’s-formant resonance added. That’s the sound the <a href="#ring">Ring trainer</a> chases acoustically. (Playback only: altering what you hear <i>while</i> singing measurably perturbs the voice.)</p>
       </div>
       <div class="card">
         <h2 style="margin-top:0">Measurements</h2>
@@ -184,6 +186,11 @@
         <button id="ringHear">🔊 Hear pitch</button>
       </div>
       <div class="bigsub" id="ringResult"></div>
+      <div class="btnrow" id="ringABRow" style="display:none">
+        <button id="ringPlayPlain">▶ My take</button>
+        <button id="ringPlayRing">🔔 With ring</button>
+      </div>
+      <p class="small dim" id="ringABHint" style="display:none; margin:6px 0 0">Same take, twice — the second through a +10 dB peak at ~2.9 kHz. The gap between them is exactly what the meter measures. Match the second one by ear.</p>
       <p class="small dim" id="ringProg" style="margin:6px 0 0"></p>
       <p class="small dim" id="ringBaseLine" style="margin:2px 0 0"></p>
     </div>
@@ -399,10 +406,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=11"></script>
-<script src="js/mic.js?v=11"></script>
-<script src="js/ui.js?v=11"></script>
-<script src="js/practice.js?v=11"></script>
+<script src="js/dsp.js?v=12"></script>
+<script src="js/mic.js?v=12"></script>
+<script src="js/ui.js?v=12"></script>
+<script src="js/practice.js?v=12"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -778,6 +785,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   }
 
   $('playBtn').addEventListener('click', () => { if (take) Mic.playPcm(take.pcm, take.sampleRate); });
+  $('playRingBtn').addEventListener('click', () => { if (take) Mic.playPcm(take.pcm, take.sampleRate, null, true); });
   $('againBtn').addEventListener('click', () => { $('results').style.display = 'none'; window.scrollTo(0, 0); });
 
   App.register('report', {
@@ -850,7 +858,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let baselines = UI.store.get('ring.baselines', {});
   let gains = UI.store.get('ring.gains', {});
   let ringC = null, busy = false, curHz = -1, stopExplore = false;
-  let exploring = false, resultShown = false;
+  let exploring = false, resultShown = false, lastTake = null;
+
+  /** Show or hide the plain/with-ring A/B for the take just captured. */
+  function offerAB(take) {
+    lastTake = take && take.pcm && take.pcm.length ? take : null;
+    $('ringABRow').style.display = lastTake ? '' : 'none';
+    $('ringABHint').style.display = lastTake ? '' : 'none';
+  }
+  $('ringPlayPlain').addEventListener('click', () => { if (lastTake) Mic.playPcm(lastTake.pcm, lastTake.sampleRate); });
+  $('ringPlayRing').addEventListener('click', () => { if (lastTake) Mic.playPcm(lastTake.pcm, lastTake.sampleRate, null, true); });
 
   /** One staircase per vowel, rehydrated from the stored level. */
   const bars = {};
@@ -908,10 +925,16 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const t0 = performance.now() / 1000;
       let frames = 0, voicedFrames = 0, settled = false;
 
+      // Record the raw PCM alongside the spectral sampling so the take can be
+      // played back afterwards — plain, or through the twang-preview filter
+      // ("this is your voice with the ring you're hunting"). Recording is
+      // cheap (4 s of Float32) and playback is §8's self-listening evidence.
+      Mic.beginRecording();
       const finish = () => {
         if (settled) return;
         settled = true; clearTimeout(guard);
-        resolve({ samples: out, frames, voicedFrames, elapsed: performance.now() / 1000 - t0 });
+        const rec = Mic.endRecording();
+        resolve({ samples: out, frames, voicedFrames, take: rec, elapsed: performance.now() / 1000 - t0 });
       };
       const guard = setTimeout(finish, secs * 1000 + 2000);
 
@@ -1231,6 +1254,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     UI.store.set('ring.baselines', baselines);
     statusEl.textContent = '';
     revealTrainer();
+    // The very first thing a new user can do is hear their plain baseline
+    // with the ring added — the target sound, in their own voice, before a
+    // single trial has run. That is the point of the preview.
+    offerAB(cap.take);
     // Land the explanation in the trial card: both callers' status elements
     // are either hidden (the setup card) or overwritten by updateProg() (the
     // one-line strip) the moment the trainer is revealed.
@@ -1315,6 +1342,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const vowel = trial.target;
     const needBase = baselines[vowel] == null;
     armMeter();                         // clear the previous take's result
+    offerAB(null);                      // ...and its A/B playback (armMeter is
+                                        // also called from nextPrompt, which
+                                        // must NOT wipe a fresh A/B)
     const midi = ladderMidi();          // one pitch for the whole ladder — see ladderMidi()
     curHz = Notes.midiToHz(midi);
 
@@ -1328,6 +1358,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const showLive = !needBase && trial.concurrent;
     const base = baselines[vowel];
     const cap = await capture(CAPTURE_S, showLive, base);
+    offerAB(cap.take);        // stays up until the next Start press
 
     if (needBase) {
       const r = scoreTrial(cap, 'median', -Infinity);

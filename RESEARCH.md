@@ -162,6 +162,31 @@ which is derived from the cepstrum without consulting f0 and so fails differentl
 two independent measures is worth more than a cut-off on either. It also flags when SPR moved a lot
 between takes, which means brightness changed rather than closure.
 
+## 4c. Twang preview — hearing your own voice with the ring added
+
+The app can replay any take through a single peaking EQ (+10 dB at 2.9 kHz, Q 1.1, spanning
+Sundberg's 2.4–3.4 kHz band) — *your* voice with the singer's-formant resonance added. Measured
+against the app's own SPR meter via offline rendering: **+6.7 dB effective SPR boost** on a dull
+voice-like tone (the nominal +10 dB lands fully only on harmonics near the peak centre), which sits
+inside Omori's 5–10 dB singer/non-singer gap. An identical gain pad on both playback paths keeps
+the A/B a timbre comparison, not a loudness one.
+
+Why it should help, and how much to trust that:
+
+- People match pitch best against **their own voice's timbre** (§3, Hutchins et al. 2014;
+  Pfordresher & Mantell 2014) — a ringed version of *your own take* is a better-matched target
+  stimulus than any external reference. **[strong for own-timbre matching]**
+- Self-listening via playback improves self-assessment (§8). The A/B makes the *specific
+  difference to aim for* audible, not just the take. **[moderate]**
+- **But the combined claim — that hearing a filtered version of yourself accelerates learning the
+  underlying vocal adjustment — has not been tested anywhere. [E]**, extrapolation. It ships as a
+  listening aid next to the Ring trainer's measurement loop, not as a replacement for it.
+
+**Playback only, never live monitoring:** altered real-time auditory feedback measurably perturbs
+phonation (Leydon 2003; Lester-Smith et al. 2023/24 — the same evidence that keeps reference tones
+out of vibrato trials), and browser/Bluetooth latency would add its own artefacts. You hear the
+target on the recording, then go make it acoustically with the meter.
+
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
 - Mechanism (Titze 2006, *JSLHR*): a semi-occluded vocal tract raises intraoral pressure and
