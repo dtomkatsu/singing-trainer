@@ -71,7 +71,13 @@ audiation pause.
   quality ratings in opera. **[strong measurement basis]**
 - Caveats: SPR depends on vowel, pitch and loudness (compare like with like); sopranos above ~C5
   don't show a meaningful singer's formant (Weiss et al. 2001); pop/R&B does not require a classical
-  formant cluster — present as "brightness/ring," not right/wrong.
+  formant cluster — present as "brightness/ring," not right/wrong. The pitch dependence is why the
+  Ring trainer pins **one note for the whole ladder**: its transfer stage originally drew a random
+  note per trial while each vowel's baseline had been captured at whichever note it first appeared
+  on, so transfer trials were partly scoring which pitch came up. Contextual interference (§8) comes
+  from switching *targets*, and five vowels already supply that, so the random pitch bought nothing
+  and cost the measurement. The note is stored rather than recomputed, so recalibrating your range
+  on the Drills page can't silently invalidate baselines already taken.
 - **Twang** (epilaryngeal narrowing) measurably boosts 2–4 kHz and output level (Lombard &
   Steinhauer 2007, *J. Voice*; MRI confirmation 2024) — the fastest trainable route to ring. **[moderate]**
 - Breathiness metrics: **HNR** (harmonics-to-noise ratio, Boersma 1993: `10·log10(r/(1−r))` from the

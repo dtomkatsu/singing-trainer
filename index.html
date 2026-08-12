@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
@@ -387,10 +387,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=6"></script>
-<script src="js/mic.js?v=6"></script>
-<script src="js/ui.js?v=6"></script>
-<script src="js/practice.js?v=6"></script>
+<script src="js/dsp.js?v=8"></script>
+<script src="js/mic.js?v=8"></script>
+<script src="js/ui.js?v=8"></script>
+<script src="js/practice.js?v=8"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -838,6 +838,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let baselines = UI.store.get('ring.baselines', {});
   let gains = UI.store.get('ring.gains', {});
   let ringC = null, busy = false, curHz = -1, stopExplore = false;
+  let exploring = false, resultShown = false;
 
   /** One staircase per vowel, rehydrated from the stored level. */
   const bars = {};
@@ -856,6 +857,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   }
 
   const targetFor = (v) => (baselines[v] == null ? null : baselines[v] + bar(v).value());
+  /** Signed dB, with a real minus sign — never "+-3.1". */
+  const signed = (v) => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1);
   const pctOf = (spr, base) =>
     Math.max(0, Math.min(100, ((spr - (base + METER_LO)) / (METER_HI - METER_LO)) * 100));
 
@@ -1037,8 +1040,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* ---------- drawing ---------- */
 
-  function drawRing(samples, secs, base, target) {
-    if (!ringC) return;
+  /**
+   * Size the trace canvas, re-measuring if it has no backing store yet.
+   *
+   * UI.canvas2d() reads clientWidth, which is 0 while an element is
+   * display:none — and #ringTrial starts hidden, so sizing it during enter()
+   * produced a 0-wide canvas that silently swallowed every draw. Because the
+   * stylesheet gives canvases width:100%, it still *looked* like a normal
+   * empty panel, so nothing about it read as broken.
+   */
+  function ensureCanvas() {
+    if (!ringC || !ringC.w) ringC = UI.canvas2d($('ringCanvas'), 150);
+    return ringC && ringC.w ? ringC : null;
+  }
+
+  function drawRing(samples, secs, base, target, achieved) {
+    if (!ensureCanvas()) return;
     const { ctx, w, h } = ringC;
     ctx.clearRect(0, 0, w, h);
     if (base == null) return;
@@ -1051,7 +1068,25 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       ctx.beginPath(); ctx.moveTo(0, Y(target)); ctx.lineTo(w, Y(target)); ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = UI.css('--good'); ctx.font = '10px -apple-system, sans-serif'; ctx.textAlign = 'left';
-      ctx.fillText('target', 4, Y(target) - 4);
+      ctx.fillText('the line', 4, Y(target) - 4);
+    }
+
+    // Where this take actually landed, drawn against the line so the gap is
+    // something you look at rather than something you compute from two
+    // negative numbers on an abstract scale.
+    if (achieved != null && target != null) {
+      const yA = Y(Math.max(lo, Math.min(hi, achieved)));
+      const gap = achieved - target;
+      ctx.strokeStyle = gap >= 0 ? UI.css('--good') : UI.css('--warn');
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, yA); ctx.lineTo(w, yA); ctx.stroke();
+      // Shade the miss so its size is legible at a glance.
+      ctx.fillStyle = gap >= 0 ? 'rgba(74,222,128,0.13)' : 'rgba(251,191,36,0.15)';
+      ctx.fillRect(0, Math.min(yA, Y(target)), w, Math.abs(yA - Y(target)));
+      ctx.fillStyle = gap >= 0 ? UI.css('--good') : UI.css('--warn');
+      ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText(`you · ${gap >= 0 ? '+' : '−'}${Math.abs(gap).toFixed(1)} dB`, w - 4, yA + (gap >= 0 ? -5 : 13));
+      ctx.textAlign = 'left';
     }
     ctx.strokeStyle = 'rgba(147,160,180,0.35)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, Y(base)); ctx.lineTo(w, Y(base)); ctx.stroke();
@@ -1082,8 +1117,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     $('ringReset').addEventListener('click', (e) => {
       e.preventDefault();
-      sched.reset(); renderLadder(); updateProg();
-      $('ringResult').textContent = 'ladder reset';
+      // Baselines, adapted levels and the pinned pitch are one measurement set:
+      // keeping any of them across a reset would score new takes against old
+      // conditions. The "ah" baseline stays so setup isn't repeated.
+      sched.reset();
+      baselines = baselines.ah != null ? { ah: baselines.ah } : {};
+      gains = {};
+      Object.keys(bars).forEach((k) => delete bars[k]);
+      UI.store.set('ring.baselines', baselines);
+      UI.store.set('ring.gains', gains);
+      UI.store.set('ring.midi', null);
+      renderLadder(); updateProg(); nextPrompt();
+      $('ringResult').textContent = 'ladder reset — vowel baselines and levels cleared';
     });
   }
 
@@ -1133,6 +1178,27 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return Math.round(randomize ? lo + Math.random() * Math.max(1, hi - lo) : (lo + hi) / 2);
   }
 
+  /**
+   * The ladder's single pitch, fixed at setup and stored.
+   *
+   * SPR is pitch-dependent (§4 of RESEARCH.md), and the transfer stage used to
+   * draw a random note per trial while each vowel's baseline had been captured
+   * at whatever note it first happened to appear on — so transfer trials were
+   * partly scoring which pitch came up rather than resonance. Contextual
+   * interference in the Steinhauer schedule comes from switching *targets*, and
+   * five vowels already supply that, so the pitch buys nothing and costs the
+   * measurement.
+   *
+   * Pinning it once (rather than recomputing the range midpoint each visit)
+   * also stops a later range recalibration on the Drills page from silently
+   * invalidating every stored baseline.
+   */
+  function ladderMidi() {
+    let m = UI.store.get('ring.midi', null);
+    if (m == null) { m = pickMidi(false); UI.store.set('ring.midi', m); }
+    return m;
+  }
+
   /* ---------- baseline ---------- */
 
   /**
@@ -1164,6 +1230,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   function revealTrainer() {
     $('ringCal').style.display = 'none';
     $('ringLadder').style.display = ''; $('ringTrial').style.display = '';
+    ringC = null; ensureCanvas();      // only now does the canvas have a width
     renderLadder(); updateProg(); nextPrompt();
   }
 
@@ -1190,15 +1257,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     $('ringGo').disabled = false;
     $('ringGo').textContent = needBase ? 'Set baseline for this vowel'
       : pending.stage.explore ? 'Start hunting' : 'Start trial';
+    // Don't wipe a result that's still on screen — the parked bar and the
+    // trace are the answer to "how close was I", and they should survive until
+    // the next take actually begins. armMeter() clears them at that point.
+    if (!resultShown) armMeter();
+  }
+
+  /** Reset the meter and trace for the trial that is about to run. */
+  function armMeter() {
+    resultShown = false;
+    if (!pending) return;
+    const needBase = baselines[pending.target] == null;
     // A baseline take has nothing to aim at yet, so the meter would just sit
     // at zero looking like a failure.
     const showMeter = pending.concurrent && !needBase;
     $('ringMeterLbl').style.display = showMeter ? '' : 'none';
     $('ringMeterBar').parentElement.style.display = showMeter ? '' : 'none';
     $('ringMeterBar').style.width = '0%';
+    $('ringMeterBar').style.background = 'var(--violet)';
+    $('ringNow').textContent = '';
     const t = targetFor(pending.target), b = baselines[pending.target];
     $('ringTick').style.left = (t == null ? 0 : pctOf(t, b)) + '%';
-    if (ringC) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
+    if (ensureCanvas()) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
   }
 
   $('ringHear').addEventListener('click', async () => {
@@ -1218,13 +1298,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
   });
 
-  let exploring = false;
-
   async function runTrial() {
     const trial = pending;
     const vowel = trial.target;
     const needBase = baselines[vowel] == null;
-    const midi = pickMidi(trial.stage.structure === 'random');
+    armMeter();                         // clear the previous take's result
+    const midi = ladderMidi();          // one pitch for the whole ladder — see ladderMidi()
     curHz = Notes.midiToHz(midi);
 
     $('ringCue').textContent = 'listen…';
@@ -1264,18 +1343,40 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // KR is withheld on a fixed proportion of reps — the withholding is the
     // intervention, so say that plainly rather than showing nothing.
     if (trial.kr) {
-      const gain = r.median - base;
-      const verdict = r.pass ? '✓ ring' : '· not yet';
-      const detail = trial.stage.score === 'sustain'
-        ? `held above target ${Math.round(r.frac * 100)}% of the note`
-        : trial.stage.score === 'peak'
-        ? `best ${r.peak.toFixed(1)} dB vs target ${target.toFixed(1)}`
-        : `median ${r.median.toFixed(1)} dB vs target ${target.toFixed(1)}`;
-      $('ringResult').innerHTML = `${verdict} — ${detail} <span class="dim">(${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB over your baseline)</span>`;
-      drawRing(cap.samples, CAPTURE_S, base, target);
+      // Lead with the one number that answers "how close was I" — the gap to
+      // the line. Raw SPR values are a negative number on an abstract scale;
+      // everything shown here is relative to your own baseline instead.
+      const scored = trial.stage.score === 'peak' ? r.peak : r.median;
+      const overBase = scored - base, lineOver = target - base, gap = scored - target;
+      const near = gap < 0 && Math.abs(gap) <= 0.7;   // inside one staircase step
+      let head;
+      if (trial.stage.score === 'sustain') {
+        const pct = Math.round(r.frac * 100);
+        head = r.pass
+          ? `<span style="color:var(--good)">✓ Held it</span> — ${pct}% of the note above the line`
+          : `${near ? 'So close' : 'Not yet'} — held it ${pct}% of the note, needs 60%`;
+      } else {
+        head = gap >= 0
+          ? `<span style="color:var(--good)">✓ Ring</span> — <b>${gap.toFixed(1)} dB</b> past the line`
+          : `${near ? 'So close' : 'Not yet'} — <b>${Math.abs(gap).toFixed(1)} dB</b> short`;
+      }
+      $('ringResult').innerHTML = head +
+        `<div class="small dim">you reached ${signed(overBase)} dB over your baseline · the line is at ${signed(lineOver)}</div>`;
+
+      // Post-trial KR, not concurrent feedback: leaving the bar parked where
+      // this take landed — beside the target tick — is the clearest possible
+      // answer to "how close", and it is legitimate even in the meter-off
+      // stages because the study withheld the *result*, not the review.
+      $('ringMeterLbl').style.display = '';
+      $('ringMeterBar').parentElement.style.display = '';
+      $('ringMeterBar').style.width = pctOf(scored, base).toFixed(0) + '%';
+      $('ringMeterBar').style.background = gap >= 0 ? 'var(--good)' : 'var(--warn)';
+      $('ringNow').innerHTML = `<b>${gap >= 0 ? '+' : '−'}${Math.abs(gap).toFixed(1)} dB</b> ${gap >= 0 ? 'past' : 'from'} the line`;
+      resultShown = true;
+      drawRing(cap.samples, CAPTURE_S, base, target, scored);
     } else {
       $('ringResult').innerHTML = '<span class="dim">logged — no feedback on this rep, on purpose. Trust what it felt like.</span>';
-      if (ringC) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
+      if (ensureCanvas()) ringC.ctx.clearRect(0, 0, ringC.w, ringC.h);
     }
 
     if (trial.probe) $('ringResult').innerHTML += '<div class="small dim">cold probe — not counted toward the stage</div>';
@@ -1319,7 +1420,6 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   App.register('ring', {
     enter() {
       if (!App.micOn) return;
-      ringC = UI.canvas2d($('ringCanvas'), 150);
       baselines = UI.store.get('ring.baselines', {});
       if (baselines.ah != null) {
         sched.beginSession();
