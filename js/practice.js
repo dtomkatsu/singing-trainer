@@ -228,7 +228,52 @@ const Practice = (() => {
     return { nextTrial, record, state, retentionRate, beginSession, reset, stages };
   }
 
-  return { create, krPlan, shuffle };
+  /**
+   * Weighted up-down staircase (Kaernbach 1991, "Simple adaptive testing with
+   * the weighted up-down method") — an adaptive difficulty level that converges
+   * on a chosen success rate instead of a fixed constant.
+   *
+   * Why the Ring trainer needs this: its target was originally "your baseline
+   * +6 dB", a number lifted from Omori's *between-groups* gap between trained
+   * singers and untrained people. That is the product of years of training, so
+   * using it as a within-session target asked people to sound like a trained
+   * singer immediately. Nothing in the literature supports a fixed
+   * within-session figure, so the honest move is to stop guessing one and let
+   * the target find its own level from what the singer actually produces.
+   *
+   * At equilibrium the expected step is zero, so with success → harder and
+   * failure → easier:  p·up = (1−p)·down,  i.e.  p = down / (up + down).
+   * Fixing `down = step` and `up = step·(1−p)/p` lands the level where the
+   * singer succeeds `successRate` of the time.
+   *
+   * Note the consequence, which is a feature: because this converges on the
+   * same 0.7 the stage gate requires, stages will advance for anyone who does
+   * the reps. Progression is no longer the measure of skill — `value()` is.
+   * How many dB above your own baseline you can hold *is* the progress number.
+   */
+  function staircase(spec = {}) {
+    const successRate = spec.successRate != null ? spec.successRate : 0.7;
+    const step = spec.step != null ? spec.step : 0.7;
+    const min = spec.min != null ? spec.min : 0.5;
+    const max = spec.max != null ? spec.max : 12;
+    const down = step;
+    const up = step * (1 - successRate) / successRate;
+    let v = Math.min(max, Math.max(min, spec.start != null ? spec.start : 2));
+
+    return {
+      value: () => v,
+      /** @returns the new level after a scored attempt. */
+      record(pass) {
+        v = Math.min(max, Math.max(min, v + (pass ? up : -down)));
+        return v;
+      },
+      /** Restore a persisted level. */
+      set(n) { if (typeof n === 'number' && isFinite(n)) v = Math.min(max, Math.max(min, n)); return v; },
+      steps: { up, down, successRate },
+    };
+  }
+
+  return { create, krPlan, shuffle, staircase };
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = { Practice };

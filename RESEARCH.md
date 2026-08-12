@@ -97,11 +97,29 @@ audiation pause.
 
 **In the app:** the tuner's purple band and ring meter, and the report's SPR/singer's-formant rows,
 are direct implementations of this literature, with Omori's bands as thresholds. The **Ring
-trainer** turns them into a task: a twang ladder that sets each target at *your own* baseline
-+6 dB (the low end of Omori's 5–10 dB singer/non-singer gap), re-baselines per vowel, and runs the
-vowels ring-easy to ring-hard (/ŋa/ → /i/ → /æ/ → /a/ → /u/). SPR is the signal it trains against
+trainer** turns them into a task: a twang ladder that re-baselines per vowel and runs the vowels
+ring-easy to ring-hard (/ŋa/ → /i/ → /æ/ → /a/ → /u/). SPR is the signal it trains against
 specifically because it is a difference between two dB peaks in one frame, so it is unchanged by
 the iOS gain the app can't switch off — see §12.
+
+**Correction (Aug 2026): there is no defensible fixed dB target, and the trainer no longer uses
+one.** It originally asked for *baseline +6 dB*, justified here as "the low end of Omori's 5–10 dB
+singer/non-singer gap." That was a category error on this file's part: Omori's figure is a
+**between-groups** difference between trained singers and untrained people — an outcome of years of
+training — and it was applied as a **within-session** target, so the ladder effectively asked
+people to sound like a trained singer on demand. It was also incoherent across stages, because the
+stored baseline is a median while stage 1 scored the 90th percentile and stages 3–4 the median: at
+a realistic 2 dB frame-to-frame spread the true ask jumped from +3.4 dB to +6.0 dB between stage 1
+and stage 2 for no pedagogical reason, and the jump was *larger* for less steady voices. Searching
+for a within-subject twang effect size to rescue the constant turned up no reported figure.
+
+The target is now adaptive per vowel: a **weighted up-down staircase** (Kaernbach 1991) with
+`p = down/(up+down)`, tuned to converge where the singer succeeds ~70% of the time — the same rate
+the stage gate requires. It opens at +2 dB and moves on every scored attempt (retention probes
+excluded, since a probe must not move the level it measures). One consequence is deliberate:
+stages now advance for anyone who does the reps, so *progression is no longer the measure of
+skill*. **The staircase level itself is** — how many dB above your own baseline you can reliably
+hold is the number the app reports and the number that should climb.
 
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
@@ -281,7 +299,7 @@ Prame 1994/1997 · *J. Voice* vibrato-genre study 2025 · Dromey, Carter & Hopki
 Moorcroft & Kenny 2015 · Mürbe et al. 2007 · Nix et al. 2016 · Leydon, Bauer & Larson 2003 ·
 Lester-Smith et al. 2023/2024 · Steinhauer & Eichhorn 2025 · Salmoni, Schmidt & Walter 1984 ·
 Sundberg & Thalén 2010 · Titze, Story et al. 2003 · Jelinger et al. 2024 · Perta et al. 2021 ·
-Feng & Howard 2023 · Rossiter & Howard 1996 · Driskell, Copper & Moran 1994 ·
+Feng & Howard 2023 · Rossiter & Howard 1996 · Kaernbach 1991 · Driskell, Copper & Moran 1994 ·
 Silveira & Gavin 2016 · Boersma 1993 · de Cheveigné & Kawahara 2002 (YIN) · Mauch & Dixon 2014 (pYIN) ·
 Kim et al. 2018 (CREPE) · Tsai & Lee 2012 · Salamon & Gómez 2012 · 30-year singing-assessment survey
 (arXiv 2601.12153, 2026).

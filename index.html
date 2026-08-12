@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -387,10 +387,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=5"></script>
-<script src="js/mic.js?v=5"></script>
-<script src="js/ui.js?v=5"></script>
-<script src="js/practice.js?v=5"></script>
+<script src="js/dsp.js?v=6"></script>
+<script src="js/mic.js?v=6"></script>
+<script src="js/ui.js?v=6"></script>
+<script src="js/practice.js?v=6"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -803,8 +803,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   // 2025 condition that produced retention and transfer rather than a good
   // in-session score.
   const STAGES = [
-    { id: 'find', name: 'Find it', score: 'peak',
-      brief: 'Meter on, one sound, result every rep. Cross the line twice — you are hunting a sensation, not a score.',
+    // Explore, not reps: the stated job is "hunt a sensation", which needs a
+    // meter you can chase continuously — the original discrete 4-second takes
+    // made you re-press Start every time you got close.
+    { id: 'find', name: 'Find it', score: 'peak', explore: true,
+      brief: 'Meter runs continuously — slide around the sound until the bar crosses the line and holds there. Two holds and you are through.',
       structure: 'blocked', concurrent: true, kr: 1.0, trials: 6, targets: ['nya'], minPasses: 2 },
     { id: 'hold', name: 'Hold it', score: 'sustain',
       brief: 'Same sound, but the ring has to stay up through the note instead of flashing once.',
@@ -817,17 +820,42 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       structure: 'random', concurrent: false, kr: 0.55, trials: 10, targets: ALL_V, passRate: 0.7 },
   ];
 
-  // Omori's singer/non-singer SPR gap is 5–10 dB, so +6 over your own honest
-  // baseline is a real but single-session-reachable ask.
-  const TARGET_GAIN = 6;
+  // How far above your own baseline the target sits. This was a hard-coded
+  // +6 dB taken from Omori's *between-groups* trained-singer/non-singer gap —
+  // a years-of-training difference misapplied as a within-session ask, which
+  // made the ladder close to unpassable. There is no supported fixed figure,
+  // so the level is now adaptive per vowel: a weighted up-down staircase that
+  // converges wherever the singer succeeds ~70% of the time, which is also the
+  // rate the stage gate wants. See Practice.staircase().
+  const START_GAIN = 2.0;                      // opening ask, dB over baseline
   const METER_LO = -4, METER_HI = 12;          // bar span, dB relative to baseline
   const CAPTURE_S = 4;
+  const EXPLORE_MAX_S = 45;                    // hunting session cap
+  const EXPLORE_HOLD_S = 0.6;                  // time above target that counts as a hit
+  const EXPLORE_EASE_S = 12;                   // fruitless hunting before the target relents
 
   const sched = Practice.create({ key: 'ring', store: UI.store, stages: STAGES });
   let baselines = UI.store.get('ring.baselines', {});
-  let ringC = null, busy = false, curHz = -1;
+  let gains = UI.store.get('ring.gains', {});
+  let ringC = null, busy = false, curHz = -1, stopExplore = false;
 
-  const targetFor = (v) => (baselines[v] == null ? null : baselines[v] + TARGET_GAIN);
+  /** One staircase per vowel, rehydrated from the stored level. */
+  const bars = {};
+  function bar(v) {
+    if (!bars[v]) {
+      bars[v] = Practice.staircase({ start: START_GAIN, step: 0.7, successRate: 0.7, min: 0.5, max: 12 });
+      if (gains[v] != null) bars[v].set(gains[v]);
+    }
+    return bars[v];
+  }
+  function stepGain(v, pass) {
+    const g = bar(v).record(pass);
+    gains[v] = +g.toFixed(2);
+    UI.store.set('ring.gains', gains);
+    return g;
+  }
+
+  const targetFor = (v) => (baselines[v] == null ? null : baselines[v] + bar(v).value());
   const pctOf = (spr, base) =>
     Math.max(0, Math.min(100, ((spr - (base + METER_LO)) / (METER_HI - METER_LO)) * 100));
 
@@ -931,6 +959,82 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     return { median, peak, frac, pass };
   }
 
+  /**
+   * Continuous hunt for stage 1. Runs the meter until you have held above
+   * target long enough, twice, or you stop — rather than ending every few
+   * seconds and making you re-press Start mid-hunt.
+   *
+   * The staircase still adapts here: each hold is a success, and a long
+   * fruitless stretch counts as one failure so the target comes down to meet
+   * a singer who cannot yet reach it, instead of stranding them.
+   *
+   * @returns {{hits, stopped, frames}}
+   */
+  function explore(vowel, needed, onHit) {
+    return new Promise((resolve) => {
+      const spec = new Float32Array(Mic.binCount() || 1024);
+      const trail = [];                       // rolling window for the trace
+      const t0 = performance.now() / 1000;
+      let hits = 0, frames = 0, aboveSince = null, lastProgress = 0, settled = false;
+
+      const finish = (stopped) => {
+        if (settled) return;
+        settled = true; clearTimeout(guard); clearTimeout(starve);
+        resolve({ hits, stopped, frames });
+      };
+      const guard = setTimeout(() => finish(true), EXPLORE_MAX_S * 1000 + 2000);
+      // A hunt is allowed to run 45 s, so the guard above is far too patient to
+      // double as a starvation check — bail in seconds if frames never arrive.
+      const starve = setTimeout(() => { if (frames < 3) finish(true); }, 2500);
+
+      const step = () => {
+        if (settled) return;
+        const t = performance.now() / 1000 - t0;
+        if (stopExplore || t > EXPLORE_MAX_S) return finish(true);
+        frames++;
+
+        // Re-read every frame: a hit or an ease-off moves the target underfoot.
+        const base = baselines[vowel], target = targetFor(vowel);
+        const pitch = Mic.livePitch();
+        const binHz = Mic.liveSpectrumDb(spec);
+        const voiced = pitch && pitch.f0 > 0 && pitch.clarity > 0.5;
+        const spr = voiced && binHz ? Metrics.sprFromDb(spec, binHz, { floorDb: -85 }) : null;
+
+        if (spr != null) {
+          trail.push({ t, v: spr });
+          while (trail.length && trail[0].t < t - 8) trail.shift();
+          if (spr >= target) {
+            if (aboveSince == null) aboveSince = t;
+            if (t - aboveSince >= EXPLORE_HOLD_S) {
+              hits++; aboveSince = null; lastProgress = t;
+              stepGain(vowel, true);
+              onHit(hits);
+              if (hits >= needed) return finish(false);
+            }
+          } else {
+            aboveSince = null;
+          }
+        } else {
+          aboveSince = null;
+        }
+
+        // Hunting a while with nothing to show for it: relent by one step.
+        if (t - lastProgress > EXPLORE_EASE_S) {
+          lastProgress = t;
+          stepGain(vowel, false);
+          $('ringCue').textContent = 'easing the target — keep hunting, it just came down a little.';
+        }
+
+        $('ringMeterBar').style.width = (spr == null ? 0 : pctOf(spr, base)).toFixed(0) + '%';
+        $('ringNow').textContent = spr == null ? '—' : spr.toFixed(1) + ' dB';
+        $('ringTick').style.left = pctOf(target, base) + '%';
+        drawRing(trail.map((s) => ({ t: s.t - Math.max(0, t - 8), v: s.v })), 8, base, target);
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
   /* ---------- drawing ---------- */
 
   function drawRing(samples, secs, base, target) {
@@ -1005,7 +1109,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         `Stage ${st.stageIndex + 1} of ${STAGES.length} — <b>${st.stage.name}</b> <span class="dim">· ${st.passes}/${st.needed} cleared</span>`;
       $('ringStageAsk').textContent = st.stage.brief;
     }
-    $('ringProg').textContent = 'Retention: ' + retTxt;
+    // With an adaptive target, clearing stages mostly means "did the reps" —
+    // the level the staircase has settled on is the real progress number, so
+    // give it the prominent slot.
+    const cur = st.stage && st.stage.targets ? st.stage.targets[0] : null;
+    const lvl = cur && baselines[cur] != null ? bar(cur).value() : null;
+    $('ringProg').innerHTML = (lvl != null
+      ? `Holding <b>+${lvl.toFixed(1)} dB</b> over baseline · ` : '') + 'retention: ' + retTxt;
 
     const b = baselines.ah;
     $('ringBaseLine').innerHTML = b == null ? ''
@@ -1046,7 +1156,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // Land the explanation in the trial card: both callers' status elements
     // are either hidden (the setup card) or overwritten by updateProg() (the
     // one-line strip) the moment the trainer is revealed.
-    $('ringResult').innerHTML = `Baseline on “ah”: <b>${r.median.toFixed(1)} dB</b> SPR — every target sits <b>+${TARGET_GAIN} dB</b> over your own reading for that vowel. ` +
+    $('ringResult').innerHTML = `Baseline on “ah”: <b>${r.median.toFixed(1)} dB</b> SPR. Targets start <b>+${START_GAIN} dB</b> over your own reading and move with you — up when you clear them, down when you don’t. ` +
       `<span class="dim">(Omori: above −15 dB is strong ring, below −25 dB dull. A starting point, not a grade.)</span>`;
   }
 
@@ -1078,7 +1188,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       ? `First time on this vowel — sing it normally to set its baseline.`
       : (pending.probe ? 'Cold probe: no meter, no help. Sing it. ' : '') + v.cue;
     $('ringGo').disabled = false;
-    $('ringGo').textContent = needBase ? 'Set baseline for this vowel' : 'Start trial';
+    $('ringGo').textContent = needBase ? 'Set baseline for this vowel'
+      : pending.stage.explore ? 'Start hunting' : 'Start trial';
     // A baseline take has nothing to aim at yet, so the meter would just sit
     // at zero looking like a failure.
     const showMeter = pending.concurrent && !needBase;
@@ -1096,11 +1207,18 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   });
 
   $('ringGo').addEventListener('click', async () => {
-    if (busy || !pending) return;
+    if (!pending) return;
+    // While a hunt is running the same button is the way out of it.
+    if (busy) { if (exploring) stopExplore = true; return; }
     busy = true; $('ringGo').disabled = true; $('ringResult').textContent = '';
     await Mic.resume();
-    try { await runTrial(); } finally { busy = false; $('ringGo').disabled = false; }
+    try { await runTrial(); } finally {
+      busy = false; exploring = false; stopExplore = false;
+      $('ringGo').disabled = false;
+    }
   });
+
+  let exploring = false;
 
   async function runTrial() {
     const trial = pending;
@@ -1112,6 +1230,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     $('ringCue').textContent = 'listen…';
     Mic.toneOn(curHz); await sleep(1000); Mic.toneOff();
     $('ringCue').textContent = needBase ? `sing “${VOWELS[vowel].label}” normally on ${Notes.name(midi)}` : `sing “${VOWELS[vowel].label}” on ${Notes.name(midi)}!`;
+
+    // Stage 1 hunts continuously instead of running scored takes.
+    if (!needBase && trial.stage.explore) return runExplore(trial, vowel, midi);
 
     const showLive = !needBase && trial.concurrent;
     const base = baselines[vowel];
@@ -1135,6 +1256,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       return;
     }
 
+    // Probes are measurement, not training — they must not move the level
+    // they are measuring against.
+    if (!trial.probe) stepGain(vowel, r.pass);
     const res = sched.record(trial, r.pass, { spr: +r.median.toFixed(1), vowel, midi });
 
     // KR is withheld on a fixed proportion of reps — the withholding is the
@@ -1159,6 +1283,38 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     renderLadder(); updateProg();
     nextPrompt();                       // leaves ringResult alone: the verdict
   }                                     // stays up until the next Start press
+
+  /** Stage 1: hunt continuously, banking a stage pass per sustained hold. */
+  async function runExplore(trial, vowel, midi) {
+    exploring = true;
+    $('ringGo').disabled = false;       // doubles as Stop while hunting
+    $('ringGo').textContent = '■ Stop';
+    $('ringCue').textContent = VOWELS[vowel].cue;
+
+    const needed = trial.stage.minPasses || 2;
+    const startHits = sched.state().passes;
+    const show = (n) => {
+      $('ringResult').innerHTML = `held it <b>${Math.min(needed, startHits + n)}/${needed}</b> — ` +
+        (startHits + n >= needed ? 'that clears the stage' : 'keep going, find it again');
+    };
+    show(0);
+
+    const out = await explore(vowel, Math.max(1, needed - startHits), (n) => {
+      show(n);
+      // Each sustained hold is a stage pass in its own right.
+      const t = sched.nextTrial();
+      if (t) sched.record(t, true, { vowel, midi, via: 'explore' });
+      renderLadder(); updateProg();
+    });
+
+    $('ringGo').textContent = 'Start hunting';
+    if (!out.hits && out.frames < 30) {
+      $('ringResult').textContent = shortfall({ frames: out.frames, voicedFrames: 0, samples: [] });
+    } else if (!out.hits) {
+      $('ringResult').innerHTML = `<span class="dim">no holds that time — the target has eased to +${bar(vowel).value().toFixed(1)} dB over your baseline. Try again.</span>`;
+    }
+    nextPrompt();
+  }
 
   App.register('ring', {
     enter() {

@@ -148,5 +148,48 @@ console.log('persistence across reloads');
      'reset is persisted, not just in-memory');
 }
 
+/* ---------- adaptive staircase ---------- */
+console.log('Practice.staircase');
+{
+  const s = Practice.staircase({ start: 2, step: 0.7, successRate: 0.7 });
+  ok(Math.abs(s.steps.up - 0.3) < 1e-9 && Math.abs(s.steps.down - 0.7) < 1e-9,
+     'step sizes solve p = down/(up+down) for p=0.7 (up 0.3, down 0.7)');
+
+  s.record(true);
+  ok(Math.abs(s.value() - 2.3) < 1e-9, 'a success raises the level by the up step');
+  s.record(false);
+  ok(Math.abs(s.value() - 1.6) < 1e-9, 'a failure lowers it by the larger down step');
+
+  const clamped = Practice.staircase({ start: 2, min: 0.5, max: 5 });
+  for (let i = 0; i < 50; i++) clamped.record(false);
+  ok(clamped.value() === 0.5, 'floors at min — always asks for *some* lift over baseline');
+  for (let i = 0; i < 200; i++) clamped.record(true);
+  ok(clamped.value() === 5, 'ceils at max');
+
+  ok(Practice.staircase({ start: 99, max: 12 }).value() === 12, 'start is clamped into range');
+  const r = Practice.staircase({ start: 2 }); r.set(4.25);
+  ok(r.value() === 4.25, 'set() restores a persisted level');
+  r.set('nonsense'); ok(r.value() === 4.25, 'set() ignores non-numbers');
+
+  // The convergence property this is chosen for: simulate a singer whose true
+  // ability is a fixed dB lift, and confirm the level settles near it rather
+  // than sitting wherever a hard-coded constant was put.
+  const ABILITY = 4.0;                       // can reliably produce +4 dB
+  const st = Practice.staircase({ start: 0.5, step: 0.7, successRate: 0.7 });
+  let seed = 12345;
+  const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const levels = [];
+  for (let i = 0; i < 600; i++) {
+    // pass probability falls off as the demanded level exceeds true ability
+    const pPass = 1 / (1 + Math.exp((st.value() - ABILITY) / 0.6));
+    st.record(rand() < pPass);
+    if (i >= 300) levels.push(st.value());
+  }
+  const mean = levels.reduce((a, b) => a + b, 0) / levels.length;
+  ok(Math.abs(mean - ABILITY) < 1.0,
+     `converges near true ability (settled at ${mean.toFixed(2)} dB vs ${ABILITY} dB)`);
+  ok(mean < ABILITY, 'settles just below ability, as a 70%-success target should');
+}
+
 console.log(`\n${checks - failures}/${checks} checks passed`);
 process.exit(failures ? 1 : 0);
