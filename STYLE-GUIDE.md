@@ -43,7 +43,12 @@ J-POP singing-technique corpus (scooping = the most ubiquitous ornament, >29 per
    final 30–50% **[C/E]** — the measurable opposite of classical onset-to-release vibrato.
 5. **Breathiness is a dial, not a defect.** Verses intimate and airy (lower HNR), chorus closed
    and present — coach the **contrast** (≈3–6 dB HNR between sections **[E]**), and only worry
-   when breathy + strained together.
+   when breathy + strained together. The Styles page's **Breathiness dial** measures this directly
+   with **H1–H2**, which reads fold closure at the source rather than inferring it from noise:
+   two /a/ takes on one note, airy then closed, reporting only the gap. Deliberately no target
+   number — H1–H2's absolute values are too individually variable to threshold, so the drill tracks
+   *your own* range widening over time and cross-checks the direction against CPPS. See
+   RESEARCH.md §4b for the confounds and why it's gated above 300 Hz f0.
 6. **Fry onsets and falsetto flips** are ornaments: fry into the note at phrase starts; a
    deliberate audible chest→falsetto break ("cry break") that lands on a stable note is a
    feature — an unintended crack that wobbles afterward is not. Post-flip stability is the

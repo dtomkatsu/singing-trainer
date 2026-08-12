@@ -15,7 +15,7 @@ Safari, hosted as static files on GitHub Pages, no accounts, no uploads, no buil
 | **Exercises** | Note matching, **blind** matching (trace hidden until after — the mode that makes gains stick), sirens, and interval leaps. Calibrates to your comfortable range first. |
 | **Compare** | Load a reference melody — record it yourself or import an isolated-vocal file — sing it back, and see both contours DTW-aligned with a transposition-tolerant score. |
 | **Warm-up** | Guided straw-phonation (SOVT) routine with a before/after spectral measurement so you can watch it work. |
-| **Styles** | Style-specific guidance and drills — how to sound more R&B (runs, bends, late vibrato), and how targets differ by genre. |
+| **Styles** | Style-specific guidance and drills — how to sound more R&B (runs, bends, late vibrato), and how targets differ by genre. Includes a **breathiness dial**: two takes, airy then closed, measuring how much fold-closure range you actually command via H1–H2 — reported as a contrast only, because absolute H1–H2 is too individually variable to threshold. |
 
 ## The science
 

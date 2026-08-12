@@ -127,6 +127,41 @@ stages now advance for anyone who does the reps, so *progression is no longer th
 skill*. **The staircase level itself is** — how many dB above your own baseline you can reliably
 hold is the number the app reports and the number that should climb.
 
+## 4b. Glottal closure: H1–H2, and why it ships without thresholds
+
+§4 is all *filter* — how the vocal tract colours the sound. **H1–H2** (amplitude of the first
+harmonic minus the second, dB) reads the *source*: how abruptly the folds snap shut. Gentle, leaky
+closure gives a rounded glottal wave with its energy piled into the fundamental (large positive
+H1–H2, heard as breathy); firm closure gives an abrupt wave spreading energy up the series (near
+zero or negative, heard as pressed or belted). Two singers can share an SPR with entirely different
+closure underneath, which is the gap it fills. The belt literature already relies on this axis —
+Bourne & Garnier report H2 ~30 dB over the fundamental in belt vs ~10 dB in classical.
+
+**No good/okay/work-on-it banding, deliberately.** The measure carries large individual variability,
+sex and age effects, f0 dependence (strongest below ~175 Hz), vowel-height dependence, and only
+~69% sensitivity for vocal hyperfunction. Absolute thresholds are not defensible, and asserting some
+anyway would repeat the §4 mistake of turning a population statistic into a personal verdict. The
+app therefore uses it **only for within-subject contrast**, where every one of those confounds
+cancels. **[moderate as a relative measure · weak as an absolute one]**
+
+Two confounds are handled by *gating the task* rather than correcting the maths:
+
+- **Formants.** H1–H2 is corrupted when F1 sits near H2. The proper fix is the Iseli–Alwan
+  H1\*–H2\* correction, which needs formant frequencies and bandwidths — i.e. LPC tracking the app
+  doesn't have. Instead the task fixes the vowel to /a/ (F1 ≈ 700–800 Hz, clear of H2) and
+  `Metrics.h1h2` refuses any frame above **300 Hz f0**, where that clearance is gone. Reporting
+  nothing beats reporting a corrupted number — the same call as the soprano singer's-formant caveat.
+- **Low-frequency rolloff.** H1 is the lowest thing in the signal, so any mic or OS high-pass biases
+  the measure toward "pressed". A constant rolloff cancels in a contrast; it would not cancel in an
+  absolute reading. Another reason the app never shows one.
+
+**In the app:** the Styles page's **Breathiness dial** takes two /a/ takes on one note — airy, then
+closed — and reports only the gap between them, which is the R&B contrast skill of §2.5 of
+STYLE-GUIDE.md made measurable. Rather than threshold the result, it cross-checks against **CPPS**,
+which is derived from the cepstrum without consulting f0 and so fails differently: agreement between
+two independent measures is worth more than a cut-off on either. It also flags when SPR moved a lot
+between takes, which means brightness changed rather than closure.
+
 ## 5. SOVT (straw phonation, lip trills) — best-evidenced tone exercise
 
 - Mechanism (Titze 2006, *JSLHR*): a semi-occluded vocal tract raises intraoral pressure and

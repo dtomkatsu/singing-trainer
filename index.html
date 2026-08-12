@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=8">
+<link rel="stylesheet" href="style.css?v=11">
 </head>
 <body>
 
@@ -370,6 +370,18 @@
       <div id="vibVerdict"></div>
     </div>
 
+    <div class="card">
+      <h2 style="margin-top:0">🎚️ Breathiness dial</h2>
+      <p class="small dim">R&amp;B lives on the <b>contrast</b> — airy and intimate in the verse, closed and present in the chorus. The skill isn’t being breathy or being clear, it’s commanding both on demand. Sing the same <b>“ah”</b> twice, one setting each, on the same note; this measures how far apart your two settings genuinely are.</p>
+      <p class="small dim">It reads <b>H1–H2</b>, the amplitude of your first harmonic minus your second — a direct read on how firmly the vocal folds are closing, independent of how bright your throat makes the sound. Absolute values vary hugely between people and are skewed by phone-mic bass rolloff, so only the <i>gap between your two takes</i> is reported: in a contrast, all of that cancels.</p>
+      <div class="btnrow">
+        <button id="dialAiry">● 1 · Airy &amp; intimate</button>
+        <button id="dialClosed" disabled>● 2 · Closed &amp; present</button>
+      </div>
+      <div class="bigsub" id="dialStatus" role="status"></div>
+      <div id="dialResult"></div>
+    </div>
+
   </div>
 </section>
 
@@ -387,10 +399,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=8"></script>
-<script src="js/mic.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/practice.js?v=8"></script>
+<script src="js/dsp.js?v=11"></script>
+<script src="js/mic.js?v=11"></script>
+<script src="js/ui.js?v=11"></script>
+<script src="js/practice.js?v=11"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -2246,6 +2258,108 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       $('vibVerdict').innerHTML = '<div class="diag' + (msg[0] === 'good' ? ' good' : '') + '"><span class="small">' + msg[1] + '</span></div>';
       $('vibStatus').textContent = '';
     } finally { busy = false; $('vibGo').disabled = false; }
+  });
+
+  /* ---------- Breathiness dial (H1–H2 contrast) ---------- */
+
+  // Both takes must sit on the same note: H1–H2 is f0-dependent, so comparing
+  // two pitches would measure the interval as much as the closure. Kept well
+  // under Metrics.h1h2's 300 Hz gate.
+  const dialMidi = () => Math.min(baseMidi(0), 57);
+  let dialAiryTake = null;
+
+  /** One 4-second take, measured three ways. */
+  async function dialCapture(label) {
+    const midi = dialMidi();
+    $('dialStatus').textContent = 'target ' + Notes.name(midi) + ' — listen…';
+    await Mic.resume();
+    Mic.toneOn(Notes.midiToHz(midi)); await sleep(900); Mic.toneOff();
+    $('dialStatus').textContent = 'sing “ah” — ' + label;
+    Mic.beginRecording();
+    await sleep(4000);
+    const take = Mic.endRecording();
+    const t = Track.analyze(take.pcm, take.sampleRate);
+    const [s, e] = Metrics.longestVoicedRun(t, 0.5);
+    if ((e - s) * t.hopSec < 2.0) { $('dialStatus').textContent = 'need ~3 s of steady tone — go again'; return null; }
+    const h = Metrics.h1h2(take.pcm, take.sampleRate, t, s, e);
+    if (!h) {
+      $('dialStatus').textContent = 'couldn’t read the harmonics — that note may be too high for this measure, or the take too unsteady';
+      return null;
+    }
+    return {
+      h1h2: h.h1h2Db,
+      f0: h.f0Hz,
+      cpps: (Metrics.cpps(take.pcm, take.sampleRate, t, s, e) || {}).cppsDb,
+      spr: (Metrics.resonance(take.pcm, take.sampleRate, t, s, e) || {}).sprDb,
+    };
+  }
+
+  $('dialAiry').addEventListener('click', async () => {
+    if (busy) return; busy = true; $('dialAiry').disabled = true; $('dialAiry').classList.add('recording');
+    try {
+      const r = await dialCapture('as airy and intimate as you can');
+      if (r) {
+        dialAiryTake = r;
+        $('dialClosed').disabled = false;
+        $('dialStatus').textContent = 'got the airy one — now the same note, closed and present';
+        $('dialResult').innerHTML = '';
+      }
+    } finally { busy = false; $('dialAiry').disabled = false; $('dialAiry').classList.remove('recording'); }
+  });
+
+  $('dialClosed').addEventListener('click', async () => {
+    if (busy || !dialAiryTake) return;
+    busy = true; $('dialClosed').disabled = true; $('dialClosed').classList.add('recording');
+    try {
+      const b = await dialCapture('closed and present — no air');
+      if (!b) return;
+      const a = dialAiryTake;
+      const range = a.h1h2 - b.h1h2;            // positive = airy really was breathier
+      // CPPS is derived from the cepstrum without consulting f0, so it fails
+      // differently from H1–H2. Agreement between two independent measures is
+      // worth more here than any threshold on either one — especially since
+      // published H1–H2 cut-offs don't survive individual variation.
+      const cppsAgrees = a.cpps != null && b.cpps != null ? a.cpps < b.cpps : null;
+      const sprShift = a.spr != null && b.spr != null ? Math.abs(a.spr - b.spr) : null;
+
+      let level, msg;
+      // "No contrast" and "contrast inverted" are different failures and need
+      // different advice — one means push harder, the other means the two
+      // settings are swapped.
+      if (range < -1.5) {
+        level = 'warn';
+        msg = `That came out <b>backwards</b> — the "airy" take measured ${Math.abs(range).toFixed(1)} dB <i>firmer</i> at the folds than the "closed" one. Most likely the two got swapped, or the airy take was quiet rather than actually breathy: breathiness is audible air escaping, not just singing softly.`;
+      } else if (range <= 1.5) {
+        level = 'warn';
+        msg = `Almost no contrast — only ${Math.abs(range).toFixed(1)} dB between the two settings, so both takes came from the same place. Exaggerate to find the ends: one on a near-whisper with audible air, the other with a firm "uh-oh" onset and no breath in the tone.`;
+      } else if (cppsAgrees === false) {
+        level = 'warn';
+        msg = `H1–H2 says <b>${range.toFixed(1)} dB</b> of range, but the breathiness measure (CPPS) disagrees about which take was airier. When two independent measures split like this the reading isn't trustworthy — usually an unsteady take. Worth running again.`;
+      } else {
+        level = 'good';
+        msg = `<b>${range.toFixed(1)} dB</b> of closure range between your two settings${cppsAgrees ? ', and CPPS agrees on the direction' : ''}. That gap <i>is</i> the R&B skill — verse and chorus drawn from opposite ends of it. Bigger is more command; track it over time rather than against anyone else's number.`;
+      }
+      if (sprShift != null && sprShift > 6) {
+        msg += ` <span class="dim">Note: your ring also shifted ${sprShift.toFixed(1)} dB between takes, so some of this is brightness/loudness rather than closure alone — try to change only the airiness next time.</span>`;
+      }
+
+      // Only real contrasts go in the history — a reversed or flat pair is a
+      // mistrial, and logging it would corrupt both the count and the best.
+      let hist = '';
+      if (level === 'good') {
+        const log = UI.store.get('dialLog', []);
+        log.push({ d: Date.now(), range: +range.toFixed(1) });
+        UI.store.set('dialLog', log.slice(-40));
+        const best = Math.max(...log.map((x) => x.range));
+        if (log.length > 1) {
+          hist = `<p class="small dim" style="margin:6px 0 0">${log.length} measured · widest so far ${best.toFixed(1)} dB</p>`;
+        }
+      }
+
+      $('dialResult').innerHTML = `<div class="diag${level === 'good' ? ' good' : ''}"><span class="small">${msg}</span>${hist}</div>`;
+      $('dialStatus').textContent = '';
+      dialAiryTake = null; $('dialClosed').disabled = true;
+    } finally { busy = false; $('dialClosed').classList.remove('recording'); }
   });
 
   App.register('styles', {

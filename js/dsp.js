@@ -717,6 +717,86 @@ const Metrics = (() => {
   }
 
   /**
+   * H1–H2 — amplitude of the first harmonic minus the second, in dB.
+   *
+   * Where SPR and CPPS describe the *filter* (how the throat colours the
+   * sound) and how noisy it is, this describes the *source*: how abruptly the
+   * vocal folds snap shut. Gentle, leaky closure yields a rounded glottal wave
+   * whose energy piles into the fundamental — a large positive H1–H2, heard as
+   * breathy. Firm closure yields an abrupt wave that spreads energy up the
+   * harmonic series — H1–H2 near zero or negative, heard as pressed or belted.
+   * Two singers can share an SPR with completely different closure underneath,
+   * which is the gap this fills.
+   *
+   * Deliberately returned as a bare number with no good/okay/bad banding. The
+   * literature is consistent that H1–H2 carries large individual variability,
+   * sex and age effects, f0 dependence (strongest below ~175 Hz), vowel-height
+   * dependence, and only ~69% sensitivity for vocal hyperfunction. Absolute
+   * thresholds are not defensible; the app uses it for *within-subject
+   * contrast*, where all of that cancels.
+   *
+   * Two confounds are handled by gating rather than by correcting:
+   *
+   *  - **Formants.** H1–H2 is corrupted when F1 sits near H2. The proper fix is
+   *    the Iseli–Alwan H1*–H2* correction, which needs formant frequencies and
+   *    bandwidths, i.e. LPC tracking the app does not have. Instead the caller
+   *    is expected to fix the vowel to /a/ (F1 ≈ 700–800 Hz, clear of H2) and
+   *    `maxF0` gates out the pitches where that clearance is gone.
+   *  - **Low-frequency rolloff.** H1 is the lowest thing in the signal, so any
+   *    mic or OS high-pass biases the measure toward "pressed". A constant
+   *    rolloff cancels in a contrast, which is the other reason not to present
+   *    absolute values.
+   *
+   * @param opts {maxF0} above this the F1 clearance is gone and the measure is
+   *             refused outright rather than reported wrongly (default 300 Hz)
+   * @returns {{h1h2Db, f0Hz, frames}} or null when unusable
+   */
+  function h1h2(pcm, sampleRate, track, start, end, opts = {}) {
+    const maxF0 = opts.maxF0 || 300;
+    // 4096 for the same reason cpps() uses it: at 48 kHz a 2048 window is
+    // 23.4 Hz per bin, so a low voice's H1 and H2 sit only a few bins apart and
+    // their Hann main lobes overlap — the two amplitudes stop being separable.
+    const win = opts.window || 4096;
+    const hann = Fft.hann(win);
+    const hop = Math.round(track.hopSec * sampleRate);
+    const binHz = sampleRate / win;
+    const vals = [], f0s = [];
+
+    for (let k = start; k < end; k++) {
+      const f0 = track.f0[k];
+      if (f0 <= 0 || f0 > maxF0) continue;
+      const off = k * hop;
+      if (off + win > pcm.length) break;
+      const frame = new Float32Array(win);
+      for (let i = 0; i < win; i++) frame[i] = pcm[off + i] * hann[i];
+      const mag = Fft.magnitude(frame);
+
+      // Search for a local maximum *near* n·f0 rather than reading the
+      // predicted bin: f0 estimation error and vibrato both move the true peak,
+      // and reading a fixed bin would sample the skirt instead of the peak.
+      const peakNear = (hz) => {
+        const tol = Math.max(binHz, 0.1 * f0);
+        const i0 = Math.max(1, Math.round((hz - tol) / binHz));
+        const i1 = Math.min(mag.length - 1, Math.round((hz + tol) / binHz));
+        let best = -Infinity;
+        for (let i = i0; i <= i1; i++) if (mag[i] > best) best = mag[i];
+        return best;
+      };
+      const a1 = peakNear(f0), a2 = peakNear(2 * f0);
+      if (!(a1 > 0) || !(a2 > 0)) continue;
+      vals.push(20 * Math.log10(a1) - 20 * Math.log10(a2));
+      f0s.push(f0);
+    }
+    if (vals.length < 5) return null;
+    vals.sort((a, b) => a - b);
+    return {
+      h1h2Db: vals[vals.length >> 1],          // median: robust to onset frames
+      f0Hz: avg(f0s),
+      frames: vals.length,
+    };
+  }
+
+  /**
    * CPPS — smoothed cepstral peak prominence, in dB.
    *
    * Why this exists next to hnr(): that estimate is derived from the pitch
@@ -833,7 +913,7 @@ const Metrics = (() => {
     return out;
   }
 
-  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, cpps, vibrato, resonance, sprFromDb };
+  return { longestVoicedRun, stability, jitterLike, shimmerLike, hnr, cpps, vibrato, resonance, sprFromDb, h1h2 };
 })();
 
 /* ------------------------------------------------------------------ *

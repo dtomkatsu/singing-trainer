@@ -224,6 +224,44 @@ console.log('Metrics.sprFromDb');
      'resonance().sprDb is exactly sprFromDb() on the same spectrum');
 }
 
+/* ---------- H1-H2 (glottal closure / source measure) ---------- */
+console.log('Metrics.h1h2');
+{
+  // The two acoustic extremes of the closure axis. Breathy = a near-sinusoidal
+  // glottal wave, energy piled into the fundamental. Pressed = an abrupt wave,
+  // energy spread up the series. Amplitudes are the harmonic *series*, so
+  // harmAmps[0] is H1 and harmAmps[1] is H2.
+  const breathy = harmonicTone(150, 2.5, [1.0, 0.10, 0.04, 0.02, 0.01]);
+  const pressed = harmonicTone(150, 2.5, [1.0, 0.95, 0.70, 0.55, 0.40]);
+
+  const measure = (pcm) => {
+    const t = Track.analyze(pcm, SR);
+    const [s, e] = Metrics.longestVoicedRun(t);
+    return Metrics.h1h2(pcm, SR, t, s, e);
+  };
+  const b = measure(breathy), p = measure(pressed);
+  ok(b && p, 'returns a reading for both phonation types');
+  // Synthesized H1/H2 ratios are 1.0/0.10 (=20 dB) and 1.0/0.95 (=0.45 dB).
+  ok(approx(b.h1h2Db, 20, 2.5), `breathy source ≈ +20 dB (got ${b.h1h2Db.toFixed(1)})`);
+  ok(approx(p.h1h2Db, 0.45, 2.5), `pressed source ≈ 0 dB (got ${p.h1h2Db.toFixed(1)})`);
+  ok(b.h1h2Db - p.h1h2Db > 12, 'H1-H2 separates breathy from pressed by a wide margin');
+
+  // The measure must refuse high voices rather than report a corrupted number:
+  // above ~300 Hz, H2 collides with F1 on /a/ and the value stops meaning
+  // anything. Same discipline as the singer's-formant caveat for sopranos.
+  const high = harmonicTone(420, 2.0, [1.0, 0.5, 0.25]);
+  const th = Track.analyze(high, SR);
+  const [hs, he] = Metrics.longestVoicedRun(th);
+  ok(Metrics.h1h2(high, SR, th, hs, he) === null, 'refuses f0 above the F1-clearance gate');
+  ok(Metrics.h1h2(high, SR, th, hs, he, { maxF0: 600 }) !== null, 'gate is configurable for testing');
+
+  // A constant gain must cancel — the contrast framing depends on it, and so
+  // does surviving iOS auto-gain.
+  const louder = Float32Array.from(breathy, (v) => v * 3.2);
+  const l = measure(louder);
+  ok(approx(l.h1h2Db, b.h1h2Db, 0.5), 'invariant to overall level');
+}
+
 /* ---------- Ring trainer: live frames must be gated on voicing, not just a dB floor ---------- */
 console.log('room noise vs a floor-only SPR gate');
 {
