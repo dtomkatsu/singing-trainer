@@ -177,7 +177,24 @@ const Mic = (() => {
     return src;
   }
 
-  /** Simple reference-tone player (sine with soft attack/release). */
+  /**
+   * Reference-tone player (triangle with soft attack/release).
+   *
+   * Level matters more than it looks. This ran at gain 0.25 (−16.8 dBFS RMS
+   * measured) and was reported as barely audible; 0.9 renders at −5.7 dBFS,
+   * +11 dB, without clipping (single oscillator, peak 0.896). The waveform
+   * stays triangle on purpose — RESEARCH.md §3 rests on people matching pitch
+   * better against harmonic-rich, voice-like tones than pure sines, so the fix
+   * is loudness, not timbre.
+   *
+   * On iOS this can still sound quiet no matter what we do here: once
+   * getUserMedia is live the OS moves to a play-and-record audio session,
+   * which routes output to the earpiece rather than the speaker. That is a
+   * platform decision, not a page one — navigator.audioSession is Safari-only
+   * and experimental, and forcing 'playback' risks dropping mic capture. Wired
+   * headphones sidestep it entirely, which the setup notes already advise.
+   */
+  const TONE_GAIN = 0.9;
   let toneOsc = null, toneGain = null;
   function toneOn(hz) {
     if (!ctx) return;
@@ -187,7 +204,7 @@ const Mic = (() => {
     toneOsc.type = 'triangle';                          // harmonics help matching
     toneOsc.frequency.value = hz;
     toneGain.gain.setValueAtTime(0, ctx.currentTime);
-    toneGain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.04);
+    toneGain.gain.linearRampToValueAtTime(TONE_GAIN, ctx.currentTime + 0.04);
     toneOsc.connect(toneGain).connect(ctx.destination);
     toneOsc.start();
   }

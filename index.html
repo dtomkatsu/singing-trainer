@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
 
@@ -149,7 +149,7 @@
 <!-- ============================ RING ============================ -->
 <section class="view" id="v-ring">
   <h1>Ring trainer</h1>
-  <p class="dim">The report can tell you your voice lacks ring. This trains it — a four-stage ladder with a live measurement, ending with the meter switched off. Resonance is the most trainable tone problem there is; you should hear a change inside one session.</p>
+  <p class="dim">Resonance — the “ring” that makes a voice carry — is the most trainable part of your tone. Four stages, ending with the meter switched off.</p>
 
   <div class="card mic-gate">
     <button class="primary big" data-micbtn>Enable microphone</button>
@@ -157,21 +157,25 @@
   </div>
 
   <div class="mic-app">
+    <!-- Full card only until a baseline exists; afterwards it collapses to the
+         one-line strip at the bottom of the trial card. -->
     <div class="card tight" id="ringCal">
-      <h3 style="margin-top:0">1 · Your baseline</h3>
-      <p class="small dim">Sing a plain, comfortable “ah” for 4 seconds — no effort, no trying to sound good. That reading becomes the number every target is set from, so an honest one is worth more than a flattering one.</p>
-      <div class="btnrow"><button id="calBtn">● Measure baseline</button></div>
+      <h3 style="margin-top:0">First, your baseline</h3>
+      <p class="small dim">Sing a plain, comfortable “ah” for 4 seconds — no effort, no trying to sound good. Every target is set from this reading, so an honest one beats a flattering one.</p>
+      <div class="btnrow"><button class="primary" id="calBtn">● Measure baseline</button></div>
       <p id="calTxt" class="small dim"></p>
     </div>
 
-    <div class="card tight" id="ringLadder" style="display:none">
-      <h3 style="margin-top:0">2 · The ladder</h3>
-      <div id="stageList"></div>
-    </div>
-
+    <!-- The trainer proper. Sits first once you're past setup, because this is
+         the card you touch ~28 times a session. -->
     <div class="card tight" id="ringTrial" style="display:none">
-      <div class="bignote" id="ringVowel">—</div>
+      <div class="stagestrip" id="ringStrip" aria-hidden="true"></div>
+      <div class="small" id="ringStageName"></div>
+      <p class="small dim" id="ringStageAsk" style="margin:4px 0 0"></p>
+
+      <div class="bignote" id="ringVowel" style="margin-top:14px">—</div>
       <div class="bigsub" id="ringCue">press Start</div>
+
       <div class="small dim" style="margin-top:10px" id="ringMeterLbl">Ring <span id="ringNow"></span></div>
       <div class="meter"><div id="ringMeterBar" style="width:0%; background:var(--violet)"></div><div class="tick" id="ringTick" style="left:0%"></div></div>
       <canvas id="ringCanvas" style="margin-top:10px"></canvas>
@@ -180,14 +184,23 @@
         <button id="ringHear">🔊 Hear pitch</button>
       </div>
       <div class="bigsub" id="ringResult"></div>
-      <div class="small dim" id="ringProg"></div>
+      <p class="small dim" id="ringProg" style="margin:6px 0 0"></p>
+      <p class="small dim" id="ringBaseLine" style="margin:2px 0 0"></p>
     </div>
 
-    <div class="card small dim">
-      <p style="margin-top:0"><b>Why the meter goes away.</b> Steinhauer &amp; Eichhorn (2025) taught 92 adults this exact skill — twang — and crossed practice structure with feedback frequency. Blocked practice with feedback on every rep won the in-session scores and <i>degraded</i> what was retained; random practice with feedback on ~55% of reps did the opposite. So stages 1–2 give you the meter to find the sensation, and stages 3–4 take it away, because that is the part that lasts.</p>
-      <p><b>Why these vowels, in this order.</b> Singer’s-formant energy is vowel-dependent (Feng &amp; Howard 2023), so the ladder runs ring-easy to ring-hard and re-baselines each vowel on its first appearance — otherwise the ladder would just be measuring vowel changes and calling it progress.</p>
-      <p style="margin-bottom:0">Twang narrows the epilaryngeal tube and boosts 2–4 kHz (Titze et al. 2003; Lombard &amp; Steinhauer 2007; Jelinger et al. 2024 MRI). Real-time singer’s-formant feedback goes back to Rossiter &amp; Howard’s ALBERT (1996). Citations: <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/RESEARCH.md">RESEARCH.md</a>.</p>
-    </div>
+    <details class="card tight foldout" id="ringLadder" style="display:none">
+      <summary>All four stages</summary>
+      <div id="stageList"></div>
+    </details>
+
+    <details class="card foldout">
+      <summary>Why it’s built this way</summary>
+      <div class="small dim">
+        <p style="margin-top:10px"><b>Why the meter goes away.</b> Steinhauer &amp; Eichhorn (2025) taught 92 adults this exact skill — twang — and crossed practice structure with feedback frequency. Blocked practice with feedback on every rep won the in-session scores and <i>degraded</i> what was retained; random practice with feedback on ~55% of reps did the opposite. So stages 1–2 give you the meter to find the sensation, and stages 3–4 take it away, because that is the part that lasts.</p>
+        <p><b>Why these vowels, in this order.</b> Singer’s-formant energy is vowel-dependent (Feng &amp; Howard 2023), so the ladder runs ring-easy to ring-hard and re-baselines each vowel on its first appearance — otherwise the ladder would just be measuring vowel changes and calling it progress.</p>
+        <p style="margin-bottom:0">Twang narrows the epilaryngeal tube and boosts 2–4 kHz (Titze et al. 2003; Lombard &amp; Steinhauer 2007; Jelinger et al. 2024 MRI). Real-time singer’s-formant feedback goes back to Rossiter &amp; Howard’s ALBERT (1996). Citations: <a href="https://github.com/dtomkatsu/singing-trainer/blob/main/RESEARCH.md">RESEARCH.md</a>.</p>
+      </div>
+    </details>
   </div>
 </section>
 
@@ -374,10 +387,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=4"></script>
-<script src="js/mic.js?v=4"></script>
-<script src="js/ui.js?v=4"></script>
-<script src="js/practice.js?v=4"></script>
+<script src="js/dsp.js?v=5"></script>
+<script src="js/mic.js?v=5"></script>
+<script src="js/ui.js?v=5"></script>
+<script src="js/practice.js?v=5"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -970,13 +983,35 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
   }
 
+  /**
+   * The trial card carries only the *current* stage: the four-segment strip
+   * for where you are, this stage's name and its one-line ask. All four
+   * stages' detail lives in the collapsed foldout, because you need to know
+   * what this rep is asking, not what rep 24 will ask.
+   */
   function updateProg() {
     const st = sched.state();
     const r = sched.retentionRate();
-    const retTxt = r == null ? 'no probes yet' : Math.round(r * 100) + '% of cold-start probes';
-    $('ringProg').innerHTML = st.complete
-      ? `Ladder complete · retention: ${retTxt}`
-      : `Stage ${st.stageIndex + 1}/${STAGES.length} — ${st.stage.name} · ${st.passes}/${st.needed} cleared · retention: ${retTxt}`;
+    const retTxt = r == null ? 'no cold probes yet' : Math.round(r * 100) + '% of cold probes held';
+
+    $('ringStrip').innerHTML = STAGES.map((_, i) =>
+      `<i class="${i < st.stageIndex ? 'done' : i === st.stageIndex ? 'on' : ''}"></i>`).join('');
+
+    if (st.complete) {
+      $('ringStageName').textContent = 'Ladder complete';
+      $('ringStageAsk').textContent = 'Come back tomorrow — the first rep will be a cold probe.';
+    } else {
+      $('ringStageName').innerHTML =
+        `Stage ${st.stageIndex + 1} of ${STAGES.length} — <b>${st.stage.name}</b> <span class="dim">· ${st.passes}/${st.needed} cleared</span>`;
+      $('ringStageAsk').textContent = st.stage.brief;
+    }
+    $('ringProg').textContent = 'Retention: ' + retTxt;
+
+    const b = baselines.ah;
+    $('ringBaseLine').innerHTML = b == null ? ''
+      : `Baseline ${b.toFixed(1)} dB on “ah” · <a href="#" id="ringRecal">re-measure</a>`;
+    const rc = $('ringRecal');
+    if (rc) rc.addEventListener('click', (e) => { e.preventDefault(); measureBaseline($('ringBaseLine')); });
   }
 
   function pickMidi(randomize) {
@@ -990,22 +1025,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* ---------- baseline ---------- */
 
-  $('calBtn').addEventListener('click', async () => {
+  /**
+   * Shared by the setup card's button and the one-line "re-measure" link that
+   * replaces it once a baseline exists — status goes to whichever element the
+   * caller is showing, since the setup card is hidden in the re-measure case.
+   */
+  async function measureBaseline(statusEl) {
     if (busy) return;
     busy = true; $('calBtn').disabled = true; $('calBtn').classList.add('recording');
     await Mic.resume();
-    $('calTxt').textContent = 'sing a plain “ah”…';
-    const s = await capture(CAPTURE_S, false, null);
+    statusEl.textContent = 'sing a plain “ah”…';
+    const cap = await capture(CAPTURE_S, false, null);
     $('calBtn').classList.remove('recording'); $('calBtn').disabled = false; busy = false;
-    const r = scoreTrial(s, 'median', -Infinity);
-    if (!r) { $('calTxt').textContent = shortfall(s); return; }
+    const r = scoreTrial(cap, 'median', -Infinity);
+    if (!r) { statusEl.textContent = shortfall(cap); return; }
     baselines.ah = r.median;
     UI.store.set('ring.baselines', baselines);
-    $('calTxt').innerHTML = `Baseline on “ah”: <b>${r.median.toFixed(1)} dB</b> SPR — targets are set at <b>+${TARGET_GAIN} dB</b> over your own reading for each vowel. ` +
-      `<span class="dim">(Omori’s bands: above −15 dB is strong ring, below −25 dB is dull. Yours is a starting point, not a grade.)</span>`;
+    statusEl.textContent = '';
+    revealTrainer();
+    // Land the explanation in the trial card: both callers' status elements
+    // are either hidden (the setup card) or overwritten by updateProg() (the
+    // one-line strip) the moment the trainer is revealed.
+    $('ringResult').innerHTML = `Baseline on “ah”: <b>${r.median.toFixed(1)} dB</b> SPR — every target sits <b>+${TARGET_GAIN} dB</b> over your own reading for that vowel. ` +
+      `<span class="dim">(Omori: above −15 dB is strong ring, below −25 dB dull. A starting point, not a grade.)</span>`;
+  }
+
+  /** Setup done: the baseline card gives way to the trainer itself. */
+  function revealTrainer() {
+    $('ringCal').style.display = 'none';
     $('ringLadder').style.display = ''; $('ringTrial').style.display = '';
     renderLadder(); updateProg(); nextPrompt();
-  });
+  }
+
+  $('calBtn').addEventListener('click', () => measureBaseline($('calTxt')));
 
   /* ---------- trials ---------- */
 
@@ -1015,7 +1067,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     pending = sched.nextTrial();
     if (!pending) {
       $('ringVowel').textContent = '✓';
-      $('ringCue').textContent = 'Ladder complete. Come back tomorrow — the first rep will be a cold probe.';
+      $('ringCue').textContent = '';        // updateProg's stage line says it
       $('ringGo').disabled = true;
       return;
     }
@@ -1114,12 +1166,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       ringC = UI.canvas2d($('ringCanvas'), 150);
       baselines = UI.store.get('ring.baselines', {});
       if (baselines.ah != null) {
-        $('ringLadder').style.display = ''; $('ringTrial').style.display = '';
-        $('calTxt').innerHTML = `Baseline on “ah”: <b>${baselines.ah.toFixed(1)} dB</b> SPR. <a href="#" id="ringRecal">re-measure</a>`;
-        const rc = $('ringRecal');
-        if (rc) rc.addEventListener('click', (e) => { e.preventDefault(); $('calBtn').click(); });
         sched.beginSession();
-        renderLadder(); updateProg(); nextPrompt();
+        revealTrainer();               // also renders the ladder, progress and prompt
       }
     },
     leave() {},

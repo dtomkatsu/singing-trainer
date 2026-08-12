@@ -147,6 +147,24 @@ canvas { width: 100%; display: block; border-radius: 12px; background: #0a0e15; 
 /* Target marker on the Ring meter — the line you are trying to cross. */
 .meter > .tick { position: absolute; top: 0; bottom: 0; width: 2px; border-radius: 0; background: var(--good); transition: left 0.15s; }
 
+/* Ring ladder progress: four segments standing in for what used to be four
+   full text blocks, so the trial card fits above the fold. */
+.stagestrip { display: flex; gap: 4px; margin-bottom: 8px; }
+.stagestrip > i { flex: 1 1 0; height: 4px; border-radius: 999px; background: var(--panel2); transition: background 0.25s; }
+.stagestrip > i.done { background: var(--good); }
+.stagestrip > i.on { background: var(--violet); }
+
+/* Collapsible reference sections — native <details>, no JS. */
+details.foldout > summary {
+  cursor: pointer; list-style: none; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+details.foldout > summary::-webkit-details-marker { display: none; }
+details.foldout > summary::before {
+  content: '▸'; color: var(--dim); display: inline-block; transition: transform 0.18s var(--ease-spring);
+}
+details.foldout[open] > summary::before { transform: rotate(90deg); }
+
 table.metrics { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 table.metrics td { padding: 9px 4px; border-bottom: 1px solid rgba(38,48,66,0.6); vertical-align: top; }
 table.metrics tr:last-child td { border-bottom: none; }
