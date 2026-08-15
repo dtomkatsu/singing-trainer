@@ -51,6 +51,17 @@ header.appbar {
   animation: chipin 0.4s var(--ease-spring) both;
 }
 .micchip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); animation: pulse-dot 2s ease-in-out infinite; }
+/* Stale-build notice. Deliberately louder than the mic chip: it is the answer
+   to "I pushed a fix and the phone is still running the old one", and it is
+   only ever on screen when that is actually true. */
+.updatechip[hidden] { display: none; }
+.updatechip {
+  display: inline-flex; align-items: center;
+  background: rgba(167,139,250,0.14); border: 1px solid rgba(167,139,250,0.45);
+  color: var(--violet); font-size: 0.72rem; font-weight: 700;
+  border-radius: 999px; padding: 4px 10px; margin-left: 8px;
+  animation: chipin 0.4s var(--ease-spring) both;
+}
 @keyframes chipin { from { opacity: 0; transform: translateY(-6px) scale(0.9); } to { opacity: 1; transform: none; } }
 @keyframes pulse-dot { 0%,100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.5); } 55% { box-shadow: 0 0 0 5px rgba(74,222,128,0); } }
 

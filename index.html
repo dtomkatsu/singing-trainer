@@ -10,13 +10,14 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=15">
+<link rel="stylesheet" href="style.css?v=20260814211809">
 </head>
 <body>
 
 <header class="appbar">
   <a class="brand" href="#home"><span class="brand-ico">🎤</span> Singing Trainer</a>
   <button class="micchip" id="micChip" hidden><span class="dot"></span> mic live</button>
+  <button class="updatechip" id="updateChip" hidden>update available — tap to load it</button>
 </header>
 
 <main id="viewport">
@@ -72,7 +73,8 @@
     </ul>
   </div>
 
-  <p class="footer-note">Static pages, no accounts, no uploads.</p>
+  <p class="footer-note">Static pages, no accounts, no uploads.<br>
+    <span id="buildStamp"></span> · <a href="#" id="forceReload">force refresh</a></p>
 </section>
 
 <!-- ============================ TUNER ============================ -->
@@ -2478,6 +2480,79 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
 <script>
 /* ===================== Home + boot ===================== */
 App.register('home', { enter() {}, leave() {}, onMic() {} });
+
+/**
+ * Which build am I actually running?
+ *
+ * GitHub Pages serves index.html with max-age=600 and an installed Home Screen
+ * copy holds it far longer, so "I pushed a fix" and "the phone is running the
+ * fix" are different claims, and nothing on screen used to settle it.
+ *
+ * document.lastModified is the Last-Modified of *this* response, which Pages
+ * sets to the deploy time — so it describes the HTML actually loaded, including
+ * a stale cached one, which is the whole point. Deriving it from the script
+ * tags' ?v= instead would have been wrong: the pre-commit hook only bumps those
+ * when the .js itself is staged, so an HTML-only fix would show the old date.
+ */
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const d = new Date(document.lastModified);
+  $('buildStamp').textContent = isNaN(d) ? 'build unknown'
+    : 'build ' + d.toLocaleString([], {
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+
+  /**
+   * Reload past every cache between here and origin. A plain reload revalidates
+   * with the cached ETag and can be answered "unchanged" by an intermediary, so
+   * this asks for a URL nothing has seen before, and empties the Cache Storage
+   * an installed copy may be serving from. Stored practice data is localStorage
+   * and is deliberately untouched.
+   */
+  async function forceReload() {
+    try {
+      if (window.caches && caches.keys) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+    } catch (_) { /* unavailable in private mode — the query string still works */ }
+    const u = new URL(location.href);
+    u.searchParams.set('fresh', Date.now());
+    location.replace(u.toString());
+  }
+
+  $('forceReload').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('forceReload').textContent = 'fetching…';
+    forceReload();
+  });
+  $('updateChip').addEventListener('click', forceReload);
+
+  /**
+   * Ask origin whether this copy is the current one, and say so if it isn't.
+   *
+   * Without this the app cannot distinguish "no new build" from "a new build
+   * exists and something between here and origin is still handing me the old
+   * page" — which is the failure that wasted a whole debugging round. no-store
+   * keeps the check itself out of the caches it is trying to see past; the
+   * minute of slack absorbs clock skew rather than nagging about nothing.
+   */
+  (async () => {
+    try {
+      const r = await fetch('index.html?ts=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) return;
+      const lm = r.headers.get('last-modified');
+      if (!lm) return;                       // no timestamp to compare against
+      const origin = new Date(lm), mine = new Date(document.lastModified);
+      if (isFinite(origin) && isFinite(mine) && origin - mine > 60000) {
+        $('updateChip').hidden = false;
+        $('buildStamp').textContent += ' — out of date';
+      }
+    } catch (_) { /* offline, or opened from a file:// copy */ }
+  })();
+})();
+
 App.init();
 </script>
 
