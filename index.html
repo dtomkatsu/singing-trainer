@@ -1177,6 +1177,27 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
 
   /* ---------- ladder UI ---------- */
 
+  /**
+   * "Take it from the top" is offered in more than one place — on the trial
+   * card where you notice you are on the wrong stage, and in the stage list
+   * next to reset, where the two choices belong side by side. One marker and
+   * one handler, so the two can never drift apart.
+   */
+  const restartLink = (label) => `<a href="#" data-restart>${label}</a>`;
+
+  function wireRestart(root) {
+    root.querySelectorAll('a[data-restart]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const probing = sched.practiceAgain();
+        renderLadder(); updateProg(); nextPrompt();
+        $('ringResult').textContent = probing
+          ? 'back to stage 1, first rep is a cold probe — baselines and levels kept'
+          : 'back to stage 1 — baselines and levels kept';
+      });
+    });
+  }
+
   function renderLadder() {
     const st = sched.state();
     $('stageList').innerHTML = STAGES.map((s, i) => {
@@ -1193,17 +1214,10 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
       //   start over — rewind the schedule, keep what you have measured
       //   reset      — throw the measurement set away and set up again
       + `<p class="small dim" style="margin-top:10px">`
-      + `<a href="#" id="ringRestart">start over from stage 1</a> <span class="dim">(keeps your baselines and levels)</span>`
+      + `${restartLink('start over from stage 1')} <span class="dim">(keeps your baselines and levels)</span>`
       + ` · <a href="#" id="ringReset">reset the ladder</a></p>`;
 
-    $('ringRestart').addEventListener('click', (e) => {
-      e.preventDefault();
-      const probing = sched.practiceAgain();
-      renderLadder(); updateProg(); nextPrompt();
-      $('ringResult').textContent = probing
-        ? 'back to stage 1, first rep is a cold probe — baselines and levels kept'
-        : 'back to stage 1 — baselines and levels kept';
-    });
+    wireRestart($('stageList'));
 
     $('ringReset').addEventListener('click', (e) => {
       e.preventDefault();
@@ -1243,20 +1257,18 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
       // cold probe, then stage 1, keeping every baseline and adapted level.
       $('ringStageAsk').innerHTML =
         'Come back tomorrow and the first rep will be a cold probe — or ' +
-        '<a href="#" id="ringAgain">run the ladder again now</a>, starting with that probe.';
-      const again = $('ringAgain');
-      if (again) again.addEventListener('click', (e) => {
-        e.preventDefault();
-        sched.practiceAgain();
-        renderLadder(); updateProg(); nextPrompt();
-        $('ringResult').textContent =
-          'ladder restarted at stage 1, first rep is a cold probe — baselines and levels kept';
-      });
+        `${restartLink('run the ladder again now')}, starting with that probe.`;
     } else {
       $('ringStageName').innerHTML =
         `Stage ${st.stageIndex + 1} of ${STAGES.length} — <b>${st.stage.name}</b> <span class="dim">· ${st.passes}/${st.needed} cleared</span>`;
-      $('ringStageAsk').textContent = st.stage.brief;
+      // Where you are in the ladder is stored, so it survives reloads and new
+      // builds — which reads as "stuck on stage 4" unless the way back to
+      // stage 1 is on the card you are actually looking at. It was buried in
+      // the collapsed stage list, which is not somewhere you go mid-rep.
+      $('ringStageAsk').innerHTML =
+        `${st.stage.brief} <span class="dim">· ${restartLink('start over from stage 1')}</span>`;
     }
+    wireRestart($('ringStageAsk'));
     // With an adaptive target, clearing stages mostly means "did the reps" —
     // the level the staircase has settled on is the real progress number, so
     // give it the prominent slot.
