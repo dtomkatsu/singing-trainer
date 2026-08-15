@@ -409,7 +409,7 @@
 <script src="js/dsp.js?v=15"></script>
 <script src="js/mic.js?v=15"></script>
 <script src="js/ui.js?v=15"></script>
-<script src="js/practice.js?v=20260814204141"></script>
+<script src="js/practice.js?v=20260814204746"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -1221,17 +1221,18 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
     if (st.complete) {
       $('ringStageName').textContent = 'Ladder complete';
       // Tomorrow's cold probe is the *ideal* next rep, but nothing about the
-      // ladder needs the trainer locked until then — so offer more reps at the
-      // top stage, which keeps every baseline and adapted level.
+      // ladder needs the trainer locked until then — so offer the same run now:
+      // cold probe, then stage 1, keeping every baseline and adapted level.
       $('ringStageAsk').innerHTML =
         'Come back tomorrow and the first rep will be a cold probe — or ' +
-        '<a href="#" id="ringAgain">run more reps now</a> at the last stage.';
+        '<a href="#" id="ringAgain">run the ladder again now</a>, starting with that probe.';
       const again = $('ringAgain');
       if (again) again.addEventListener('click', (e) => {
         e.preventDefault();
         sched.practiceAgain();
         renderLadder(); updateProg(); nextPrompt();
-        $('ringResult').textContent = 'extra reps at the last stage — baselines and levels kept';
+        $('ringResult').textContent =
+          'ladder restarted at stage 1, first rep is a cold probe — baselines and levels kept';
       });
     } else {
       $('ringStageName').innerHTML =
@@ -1344,7 +1345,7 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
       : (pending.probe ? 'Cold probe: no meter, no help. Sing it. ' : '') + v.cue;
     $('ringGo').disabled = false;
     $('ringGo').textContent = needBase ? 'Set baseline for this vowel'
-      : pending.stage.explore ? 'Start hunting' : 'Start trial';
+      : (pending.stage.explore && !pending.probe) ? 'Start hunting' : 'Start trial';
     // Don't wipe a result that's still on screen — the parked bar and the
     // trace are the answer to "how close was I", and they should survive until
     // the next take actually begins. armMeter() clears them at that point.
@@ -1401,8 +1402,11 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
     Mic.toneOn(curHz); await sleep(1000); Mic.toneOff();
     $('ringCue').textContent = needBase ? `sing “${VOWELS[vowel].label}” normally on ${Notes.name(midi)}` : `sing “${VOWELS[vowel].label}” on ${Notes.name(midi)}!`;
 
-    // Stage 1 hunts continuously instead of running scored takes.
-    if (!needBase && trial.stage.explore) return runExplore(trial, vowel, midi);
+    // Stage 1 hunts continuously instead of running scored takes — but a cold
+    // probe is a single unfed take by definition, and the hunt is the opposite
+    // of that (live meter, and every hold banks a stage pass). So a probe that
+    // lands on stage 1 runs the ordinary scored path.
+    if (!needBase && trial.stage.explore && !trial.probe) return runExplore(trial, vowel, midi);
 
     const showLive = !needBase && trial.concurrent;
     const base = baselines[vowel];

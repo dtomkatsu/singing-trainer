@@ -226,20 +226,24 @@ const Practice = (() => {
     function reset() { st = Object.assign({}, blank, { history: [], retention: st.retention }); save(); }
 
     /**
-     * Re-open the last stage for extra reps once the ladder is finished.
+     * Run the whole ladder again from stage 1 once it is finished.
      *
-     * Finishing the ladder is a teaching milestone, not a daily quota: without
-     * this the only way back into a trial is reset(), which throws away the
-     * baselines and adapted levels the whole run produced. This keeps every
-     * measurement and just refills the trial window at the top stage, so a
-     * fresh clearing of it completes the ladder again.
+     * Finishing is a teaching milestone, not a daily quota: without this the
+     * only route back into a trial is reset(), which throws away the baselines
+     * and adapted levels the run produced. This keeps every measurement and
+     * only rewinds the schedule.
+     *
+     * The first rep is a cold probe, exactly as it would be on the intended
+     * next-day return — there is a full ladder's worth of learning to test, and
+     * the probe is unfed and doesn't count toward stage 1, so it reads "show me
+     * what stuck" before the feedback comes back on.
      *
      * @returns {boolean} false if the ladder wasn't complete (nothing to do).
      */
     function practiceAgain() {
       if (!complete()) return false;
-      st.stage = stages.length - 1;
-      st.trial = 0; st.window = []; st.plan = null; st.probePending = false;
+      st.stage = 0;
+      st.trial = 0; st.window = []; st.plan = null; st.probePending = true;
       save();
       return true;
     }

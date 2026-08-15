@@ -160,8 +160,16 @@ console.log('practiceAgain');
 
   ok(p.practiceAgain() === true, 'practiceAgain re-opens the ladder');
   const st = p.state();
-  ok(!st.complete && st.stage.id === STAGES[STAGES.length - 1].id, 'it re-enters the last stage');
-  ok(st.passes === 0 && p.nextTrial() != null, 'with a fresh window and a trial to run');
+  ok(!st.complete && st.stage.id === STAGES[0].id, 'it restarts at stage 1');
+  ok(st.passes === 0, 'with a fresh trial window');
+  const first = p.nextTrial();
+  ok(first != null && first.probe === true, 'and the first rep is a cold probe');
+  ok(first.kr === false && first.concurrent === false, 'that probe is unfed on both channels');
+  p.record(first, true);
+  const after = p.state();
+  ok(after.passes === 0 && after.stage.id === STAGES[0].id && after.retention.length === 1,
+     'the probe logs to retention and leaves stage 1 untouched');
+  ok(p.nextTrial().probe === false, 'the rep after it is a normal stage-1 trial');
   ok(p.state().history.length > 0, 'history survives — it is not a reset');
   ok(Practice.create({ key: 'test', stages: STAGES, store, now: () => 1000 }).state().complete === false,
      'and it is persisted across a reload');
