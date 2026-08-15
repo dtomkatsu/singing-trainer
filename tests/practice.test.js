@@ -153,7 +153,21 @@ console.log('practiceAgain');
 {
   const store = memStore();
   const p = Practice.create({ key: 'test', stages: STAGES, store, rng: lcg(7), now: () => 1000 });
-  ok(p.practiceAgain() === false, 'no-op while the ladder is unfinished');
+  // Reachable mid-ladder too — that is when "take it from the top" is asked
+  // for, and reset() is the only alternative.
+  {
+    const mid = mk();
+    mid.record(mid.nextTrial(), true); mid.record(mid.nextTrial(), true);
+    ok(mid.state().stage.id === 'hold', 'mid-ladder: on stage 2');
+    ok(mid.practiceAgain() === true && mid.state().stage.id === 'find',
+       'practiceAgain works mid-ladder, not just at the finish');
+    ok(mid.nextTrial().probe === true, 'and still opens with a cold probe');
+  }
+  {
+    const fresh = mk();
+    ok(fresh.practiceAgain() === false && fresh.nextTrial().probe === false,
+       'from a standing start there is nothing to probe');
+  }
   // Clear every stage: minPasses/passRate are all satisfied by all-passes.
   for (let i = 0; i < 40 && !p.state().complete; i++) p.record(p.nextTrial(), true);
   ok(p.state().complete && p.nextTrial() === null, 'ladder finishes and hands out no trials');

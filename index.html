@@ -409,7 +409,7 @@
 <script src="js/dsp.js?v=15"></script>
 <script src="js/mic.js?v=15"></script>
 <script src="js/ui.js?v=15"></script>
-<script src="js/practice.js?v=20260814204746"></script>
+<script src="js/practice.js?v=20260814211136"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -1185,7 +1185,23 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
         <b>${mark} ${i + 1}. ${s.name}${prog}</b><span class="small">${s.brief}</span>
         <p class="small dim" style="margin:6px 0 0">${s.concurrent ? 'live meter on' : 'live meter off'} · result on ${Math.round(s.kr * 100)}% of reps · ${s.structure} order</p>
       </div>`;
-    }).join('') + `<p class="small dim" style="margin-top:10px"><a href="#" id="ringReset">reset the ladder</a></p>`;
+    }).join('')
+      // Two different wants, and conflating them is why the only way back to
+      // stage 1 used to cost you every measurement:
+      //   start over — rewind the schedule, keep what you have measured
+      //   reset      — throw the measurement set away and set up again
+      + `<p class="small dim" style="margin-top:10px">`
+      + `<a href="#" id="ringRestart">start over from stage 1</a> <span class="dim">(keeps your baselines and levels)</span>`
+      + ` · <a href="#" id="ringReset">reset the ladder</a></p>`;
+
+    $('ringRestart').addEventListener('click', (e) => {
+      e.preventDefault();
+      const probing = sched.practiceAgain();
+      renderLadder(); updateProg(); nextPrompt();
+      $('ringResult').textContent = probing
+        ? 'back to stage 1, first rep is a cold probe — baselines and levels kept'
+        : 'back to stage 1 — baselines and levels kept';
+    });
 
     $('ringReset').addEventListener('click', (e) => {
       e.preventDefault();

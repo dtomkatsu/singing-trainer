@@ -238,14 +238,19 @@ const Practice = (() => {
      * the probe is unfed and doesn't count toward stage 1, so it reads "show me
      * what stuck" before the feedback comes back on.
      *
-     * @returns {boolean} false if the ladder wasn't complete (nothing to do).
+     * Available at any point, not only at the finish: being part-way up the
+     * ladder is exactly when you might want to take it from the top, and the
+     * alternative — reset() — costs the measurements.
+     *
+     * @returns {boolean} true if a probe was armed, i.e. there was prior
+     *   learning to test. A restart from a standing start has nothing to probe.
      */
     function practiceAgain() {
-      if (!complete()) return false;
+      const learned = complete() || st.stage > 0 || st.history.length > 0;
       st.stage = 0;
-      st.trial = 0; st.window = []; st.plan = null; st.probePending = true;
+      st.trial = 0; st.window = []; st.plan = null; st.probePending = learned;
       save();
-      return true;
+      return learned;
     }
 
     return { nextTrial, record, state, retentionRate, beginSession, reset, practiceAgain, stages };
