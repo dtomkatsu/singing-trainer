@@ -148,6 +148,25 @@ console.log('persistence across reloads');
      'reset is persisted, not just in-memory');
 }
 
+/* ---------- practising past the end ---------- */
+console.log('practiceAgain');
+{
+  const store = memStore();
+  const p = Practice.create({ key: 'test', stages: STAGES, store, rng: lcg(7), now: () => 1000 });
+  ok(p.practiceAgain() === false, 'no-op while the ladder is unfinished');
+  // Clear every stage: minPasses/passRate are all satisfied by all-passes.
+  for (let i = 0; i < 40 && !p.state().complete; i++) p.record(p.nextTrial(), true);
+  ok(p.state().complete && p.nextTrial() === null, 'ladder finishes and hands out no trials');
+
+  ok(p.practiceAgain() === true, 'practiceAgain re-opens the ladder');
+  const st = p.state();
+  ok(!st.complete && st.stage.id === STAGES[STAGES.length - 1].id, 'it re-enters the last stage');
+  ok(st.passes === 0 && p.nextTrial() != null, 'with a fresh window and a trial to run');
+  ok(p.state().history.length > 0, 'history survives — it is not a reset');
+  ok(Practice.create({ key: 'test', stages: STAGES, store, now: () => 1000 }).state().complete === false,
+     'and it is persisted across a reload');
+}
+
 /* ---------- adaptive staircase ---------- */
 console.log('Practice.staircase');
 {

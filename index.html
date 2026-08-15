@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Singing Trainer</title>
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=15">
 </head>
 <body>
 
@@ -406,10 +406,10 @@
   <button data-view="styles"><span class="ico">🎙️</span>Styles</button>
 </nav>
 
-<script src="js/dsp.js?v=14"></script>
-<script src="js/mic.js?v=14"></script>
-<script src="js/ui.js?v=14"></script>
-<script src="js/practice.js?v=14"></script>
+<script src="js/dsp.js?v=15"></script>
+<script src="js/mic.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
+<script src="js/practice.js?v=20260814204141"></script>
 
 <script>
 /* ===================== App core: views, routing, shared mic ===================== */
@@ -1220,7 +1220,19 @@ async function previewPlayback(pcm, sampleRate, fx, opts = {}) {
 
     if (st.complete) {
       $('ringStageName').textContent = 'Ladder complete';
-      $('ringStageAsk').textContent = 'Come back tomorrow — the first rep will be a cold probe.';
+      // Tomorrow's cold probe is the *ideal* next rep, but nothing about the
+      // ladder needs the trainer locked until then — so offer more reps at the
+      // top stage, which keeps every baseline and adapted level.
+      $('ringStageAsk').innerHTML =
+        'Come back tomorrow and the first rep will be a cold probe — or ' +
+        '<a href="#" id="ringAgain">run more reps now</a> at the last stage.';
+      const again = $('ringAgain');
+      if (again) again.addEventListener('click', (e) => {
+        e.preventDefault();
+        sched.practiceAgain();
+        renderLadder(); updateProg(); nextPrompt();
+        $('ringResult').textContent = 'extra reps at the last stage — baselines and levels kept';
+      });
     } else {
       $('ringStageName').innerHTML =
         `Stage ${st.stageIndex + 1} of ${STAGES.length} — <b>${st.stage.name}</b> <span class="dim">· ${st.passes}/${st.needed} cleared</span>`;
